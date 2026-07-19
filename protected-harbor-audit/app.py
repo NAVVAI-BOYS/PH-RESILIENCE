@@ -1,0 +1,481 @@
+"""
+Protected Harbor SaaS Infrastructure Resilience Audit
+"Can You Take a Server Down?"
+
+Flask backend. Mirrors the AUDIT-LITE architecture:
+  - AI endpoints (reroute, followup, analyze) with duration/stop-reason logging
+  - Verdict computed server side from the weakest pillar (never vibed)
+  - Email gate leads stored in data/leads.json, retrievable via /api/leads (+ CSV)
+  - Funnel events at /api/event + /api/events
+  - Resend email on gate unlock (graceful mailto fallback until configured)
+  - Basic in-memory rate limiting per IP
+
+Env vars (set on Render):
+  ANTHROPIC_API_KEY   required for AI sections (client-side fallbacks cover outages)
+  MODEL               default claude-sonnet-4-6
+  ADMIN_KEY           required to read /api/leads, /api/leads.csv, /api/events
+  RESEND_API_KEY      optional; enables real email sending
+  FROM_EMAIL          default "Protected Harbor Resilience Audit <info@navvai.com>"
+  NOTIFY_EMAIL        default info@navvai.com  (internal lead notification copy)
+  CALENDLY_URL        booking link used in emails + report CTA
+"""
+
+import json
+import os
+import re
+import time
+import threading
+from datetime import datetime, timezone
+
+import requests
+from flask import Flask, jsonify, render_template, request, Response
+
+app = Flask(__name__)
+
+# ---------------------------------------------------------------- config
+
+ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
+MODEL = os.environ.get("MODEL", "claude-sonnet-4-6")
+ADMIN_KEY = os.environ.get("ADMIN_KEY", "")
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
+FROM_EMAIL = os.environ.get(
+    "FROM_EMAIL", "Protected Harbor Resilience Audit <info@navvai.com>"
+)
+NOTIFY_EMAIL = os.environ.get("NOTIFY_EMAIL", "info@navvai.com")
+CALENDLY_URL = os.environ.get("CALENDLY_URL", "https://calendly.com/navvai")
+CONTACT_EMAIL = os.environ.get("CONTACT_EMAIL", "info@navvai.com")
+
+DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+LEADS_PATH = os.path.join(DATA_DIR, "leads.json")
+EVENTS_PATH = os.path.join(DATA_DIR, "events.json")
+os.makedirs(DATA_DIR, exist_ok=True)
+
+_lock = threading.Lock()
+
+# ---------------------------------------------------------------- rate limit
+
+_hits = {}  # ip -> [timestamps]
+LIMITS = {"analyze": (12, 3600), "default": (90, 3600)}
+
+
+def rate_limited(ip, bucket="default"):
+    limit, window = LIMITS.get(bucket, LIMITS["default"])
+    now = time.time()
+    key = f"{ip}:{bucket}"
+    with _lock:
+        arr = [t for t in _hits.get(key, []) if now - t < window]
+        if len(arr) >= limit:
+            _hits[key] = arr
+            return True
+        arr.append(now)
+        _hits[key] = arr
+    return False
+
+
+def client_ip():
+    fwd = request.headers.get("X-Forwarded-For", "")
+    return fwd.split(",")[0].strip() if fwd else (request.remote_addr or "?")
+
+
+# ---------------------------------------------------------------- json store
+
+
+def _load(path):
+    try:
+        with open(path, "r") as f:
+            return json.load(f)
+    except Exception:
+        return []
+
+
+def _append(path, item):
+    with _lock:
+        items = _load(path)
+        items.append(item)
+        with open(path, "w") as f:
+            json.dump(items, f, indent=1)
+
+
+# ---------------------------------------------------------------- anthropic
+
+
+def call_ai(system, user, max_tokens=6000, tag="ai"):
+    """Call the Anthropic API. Logs duration, output size and stop reason.
+    Raises RuntimeError on any failure; callers convert to a 502 so the
+    client-side fallback takes over. Never returns a blank."""
+    if not ANTHROPIC_API_KEY:
+        raise RuntimeError("ANTHROPIC_API_KEY not configured")
+    t0 = time.time()
+    r = requests.post(
+        "https://api.anthropic.com/v1/messages",
+        headers={
+            "x-api-key": ANTHROPIC_API_KEY,
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+        },
+        json={
+            "model": MODEL,
+            "max_tokens": max_tokens,
+            "system": system,
+            "messages": [{"role": "user", "content": user}],
+        },
+        timeout=110,
+    )
+    dur = time.time() - t0
+    if r.status_code != 200:
+        app.logger.error("[%s] api %s in %.1fs: %s", tag, r.status_code, dur, r.text[:400])
+        raise RuntimeError(f"api {r.status_code}")
+    data = r.json()
+    text = "".join(b.get("text", "") for b in data.get("content", []) if b.get("type") == "text")
+    app.logger.info(
+        "[%s] ok in %.1fs, %s chars, stop=%s",
+        tag, dur, len(text), data.get("stop_reason"),
+    )
+    return text
+
+
+def parse_json(text):
+    text = re.sub(r"^```(?:json)?\s*|\s*```$", "", text.strip())
+    start, end = text.find("{"), text.rfind("}")
+    if start == -1 or end == -1:
+        raise RuntimeError("no json object in output")
+    return json.loads(text[start : end + 1])
+
+
+# ---------------------------------------------------------------- prompts
+
+HOUSE_RULES = """You write for Protected Harbor, a SaaS infrastructure engineering firm.
+Voice: a straight-talking senior engineer who explains complex things in simple terms. Plain English only.
+HARD RULES:
+- Never use a term the reader has to already know. If a technical term is unavoidable (HA, failover, stateless), define it in the same sentence in brackets.
+- Every claim carries its reason in plain English. No unexplained scores, no jargon, no buzzwords.
+- Never invent money figures. Money math is computed elsewhere from the prospect's own numbers. You may reference "your own figures" but never state amounts.
+- Be honest even if it costs the sale. If they are genuinely in good shape, say so plainly.
+- Ground everything in what they actually told you. Quote their words back where useful.
+- No hyphens or em dashes in output text. Use commas or full stops."""
+
+ANALYZE_SYSTEM = HOUSE_RULES + """
+
+You produce a SaaS infrastructure resilience report as STRICT JSON only. No preamble, no markdown fences, no text outside the JSON object.
+
+Scoring: score each pillar 0 to 10 from their answers. Be conservative and honest. An unanswered or "not sure" answer lowers confidence and the score, and the report should say so honestly.
+The verdict is computed by the system from the weakest pillar (7+ Hardened, 4 to 6.9 Exposed in places, under 4 Running on luck). Do not argue with that rule; write consistently with it.
+
+Blind spot patterns to check their answers against (pick the ONE most true for them, never generic):
+- a failover that has never actually been exercised is a hope, not a plan
+- clients mapped across shared servers so no single server can ever come down
+- process holes behind the tooling (the person at the desk can bypass the system)
+- security nobody owns end to end because every specialist only knows their slice
+- a VMware renewal shock nobody has priced in
+- a cloud bill quietly making the case for moving workloads back
+- environments that can never do maintenance are the ones ransomware walks into
+
+Return EXACTLY this JSON shape:
+{
+ "headline": "one sentence, specific to them, their biggest truth",
+ "pillars": [
+   {"key":"resilience","name":"Resilience and availability","score":0,"reason":"plain English, cites their answers"},
+   {"key":"security","name":"Security and maintenance debt","score":0,"reason":"..."},
+   {"key":"scale","name":"Scalability, performance and cost","score":0,"reason":"..."},
+   {"key":"ops","name":"Operational readiness","score":0,"reason":"..."}
+ ],
+ "painkiller":{"label":"Painkiller" or "Vitamin","reason":"is infrastructure a bleeding wound for them right now or an insurance policy, and why"},
+ "first_move":"one sentence: given the verdict and weakest pillar, the single thing to do before anything else, specific to their answers",
+ "within_reach":"one short paragraph on why fixing this is achievable for them specifically, citing figures or facts they gave",
+ "return_source":"one short paragraph on where the return actually comes from, in their figures and freed capacity, no invented amounts",
+ "blind_spot":"the one thing they are not seeing, 2 to 3 sentences, specific to their answers",
+ "frankenstein":"bolted on tools and silos vs connected systems, include unmanaged AI or shadow IT if relevant, and apply should you not just can you to their AI plans",
+ "ransomware_exposure":"their maintenance debt and patch reality in plain terms and what that class of gap has historically meant, no invented figures",
+ "ai_readiness":"what the business is asking for on AI vs what their infrastructure can actually carry, and the single gap to close first",
+ "one_initiative":{"title":"the single highest leverage move","why":"why this one and not the other three"},
+ "frankenstein_risk":"Low" or "Medium" or "High",
+ "shadow_ai":{"level":"Low" or "Medium" or "High","text":"2 to 3 sentences on unofficial AI tool use in their environment, grounded in their answers; if nothing suggests it, say so and recommend a one page policy anyway"},
+ "pain_service_map":[
+   {"pain":"their named pain in their words","pillar":"the exact name of the pillar (of the four) where this challenge scored","service":"the Protected Harbor service that fixes it","how":"one plain sentence"}
+ ],
+ "ranking":[
+   {"title":"improvement opportunity","score":0.0,"components":{"impact":0,"feasibility":0,"time_to_value":0,"risk_reduction":0},"reason":"why this score, referencing the weights"}
+ ],
+ "why_winner":"one short paragraph comparing number 1 to number 2 and why it wins; the ranking is relative",
+ "roadmap":[
+   {"phase":1,"days":"Days 0 to 30","title":"quick wins first","what":"what happens, plain English","service":"which Protected Harbor service does the work","effort":"Light or Moderate or Heavy","recovery_pct":20},
+   {"phase":2,"days":"Days 30 to 60","title":"...","what":"...","service":"...","effort":"...","recovery_pct":45},
+   {"phase":3,"days":"Days 60 to 90","title":"...","what":"...","service":"...","effort":"...","recovery_pct":65}
+ ],
+ "current_state":"one paragraph describing today, built directly from their answers, specific not generic",
+ "future_state":"one paragraph describing day 90 if the roadmap lands, same specifics resolved",
+ "goal_tieback":"one paragraph connecting the roadmap to their 12 month goal, quoting their goal verbatim",
+ "trace":[
+   {"answer_quote":"short quote of what they said","what_it_changed":"what it changed in this report"}
+ ],
+ "pilot":{"title":"the two week pilot","what":"the smallest first win that proves value, plain English"}
+}
+
+Rules for specific fields:
+- pain_service_map: map EVERY pain they raised to one of: SaaS infrastructure engineering, Migration and DevOps repair, Managed hosting and high availability environments, Security hardening, Custom programming. Frame in their positioning: one accountable partner for performance, security and costs. Tag each with the pillar that flagged it so the reader can trace challenge, score, and fix in one line.
+- Narrative linkage rules: ai_readiness must reference the weakest pillar by name (the pillars ARE the AI readiness scores). one_initiative must reference the ranking that follows it. blind_spot, frankenstein, and ransomware_exposure must each trace to a pillar score. The report is one story: verdict, cost, exposure, map, plan, receipts.
+- ranking: 3 to 5 items, scored with weights Impact 35, Feasibility 25, Time to value 20, Risk reduction 20 (out of 10 overall). A 10 does not exist.
+- roadmap recovery_pct: cumulative and conservative. Phase 1 max 25, phase 2 max 50, phase 3 max 70.
+- trace: one entry per core answer they gave, including sizing figures and follow ups. Quote them.
+- Peel the onion framing in the roadmap: the first fix takes the biggest bite, then diminishing returns."""
+
+REROUTE_SYSTEM = HOUSE_RULES + """
+
+The prospect tapped "Not sure, ask me a different way" on a question. Rewrite it as a tappable multiple choice question. Return STRICT JSON only:
+{"question":"the same question asked a simpler, more concrete way","options":["3 to 5 options phrased as answers in the prospect's own voice, first person"]}
+Options must be mutually distinct, cover the realistic range, use a scale format where natural, and be grounded in their industry and role."""
+
+FOLLOWUP_SYSTEM = HOUSE_RULES + """
+
+Given a prospect's answer, write ONE short follow up question that digs into the most revealing thing they said. Conversational, specific to their words, one sentence. Return STRICT JSON only: {"followup":"..."} or {"followup":null} if their answer is already complete."""
+
+
+# ---------------------------------------------------------------- verdict
+
+BANDS = [
+    {"key": "luck", "name": "Running on luck", "min": 0, "max": 3.99,
+     "meaning": "The next incident sets your timeline, not you. Specific gaps mean an ordinary failure becomes an outage."},
+    {"key": "exposed", "name": "Exposed in places", "min": 4, "max": 6.99,
+     "meaning": "The foundations exist but specific, known gaps remain. Fixable inside 90 days."},
+    {"key": "hardened", "name": "Hardened", "min": 7, "max": 10,
+     "meaning": "You can take a server down. The remaining work is optimisation, not rescue."},
+]
+
+
+def compute_verdict(pillars):
+    """Doctrine: the verdict follows the lowest pillar. Computed, not vibed."""
+    scores = [max(0.0, min(10.0, float(p.get("score", 0)))) for p in pillars]
+    weakest = min(scores) if scores else 0.0
+    weakest_pillar = pillars[scores.index(weakest)]["name"] if pillars else ""
+    band = next(b for b in BANDS if b["min"] <= weakest <= b["max"])
+    nxt = None
+    for b in BANDS:
+        if b["min"] > weakest:
+            nxt = {"name": b["name"], "gap": round(b["min"] - weakest, 1)}
+            break
+    return {
+        "verdict": band["name"],
+        "verdict_key": band["key"],
+        "verdict_meaning": band["meaning"],
+        "weakest_pillar": weakest_pillar,
+        "weakest_score": round(weakest, 1),
+        "readiness_pct": round(sum(scores) / (10 * len(scores)) * 100) if scores else 0,
+        "next_band": nxt,
+        "bands": BANDS,
+        "rule": "Weakest pillar 7 or above: Hardened. 4 to 6.9: Exposed in places. Under 4: Running on luck. Your verdict follows your lowest pillar, because an environment is only as resilient as its weakest layer.",
+    }
+
+
+RANK_BANDS = [
+    (8.0, "Exceptional leverage"),
+    (6.5, "Strong candidate"),
+    (5.0, "Viable with preparation"),
+    (0.0, "Not yet"),
+]
+
+
+def rank_band(score):
+    for floor, label in RANK_BANDS:
+        if score >= floor:
+            return label
+    return "Not yet"
+
+
+# ---------------------------------------------------------------- routes
+
+
+@app.route("/")
+def index():
+    return render_template("index.html", calendly_url=CALENDLY_URL, contact_email=CONTACT_EMAIL)
+
+
+@app.route("/healthz")
+def healthz():
+    return jsonify({"ok": True, "ai": bool(ANTHROPIC_API_KEY), "email": bool(RESEND_API_KEY)})
+
+
+@app.route("/api/reroute", methods=["POST"])
+def api_reroute():
+    if rate_limited(client_ip()):
+        return jsonify({"error": "rate"}), 429
+    d = request.get_json(force=True, silent=True) or {}
+    user = json.dumps({
+        "industry": d.get("industry"), "role": d.get("role"),
+        "question": d.get("question"), "rationale": d.get("rationale"),
+        "prior_answers": d.get("prior", {}),
+    })
+    try:
+        out = parse_json(call_ai(REROUTE_SYSTEM, user, max_tokens=800, tag="reroute"))
+        if not isinstance(out.get("options"), list) or not out["options"]:
+            raise RuntimeError("bad shape")
+        return jsonify(out)
+    except Exception as e:
+        app.logger.warning("reroute fallback: %s", e)
+        return jsonify({"error": "ai"}), 502
+
+
+@app.route("/api/followup", methods=["POST"])
+def api_followup():
+    if rate_limited(client_ip()):
+        return jsonify({"error": "rate"}), 429
+    d = request.get_json(force=True, silent=True) or {}
+    user = json.dumps({
+        "industry": d.get("industry"), "role": d.get("role"),
+        "question": d.get("question"), "answer": d.get("answer"),
+    })
+    try:
+        out = parse_json(call_ai(FOLLOWUP_SYSTEM, user, max_tokens=400, tag="followup"))
+        return jsonify({"followup": out.get("followup")})
+    except Exception as e:
+        app.logger.warning("followup skipped: %s", e)
+        return jsonify({"followup": None})
+
+
+@app.route("/api/analyze", methods=["POST"])
+def api_analyze():
+    if rate_limited(client_ip(), "analyze"):
+        return jsonify({"error": "rate"}), 429
+    d = request.get_json(force=True, silent=True) or {}
+    payload = {
+        "industry": d.get("industry"), "role": d.get("role"),
+        "twelve_month_goal": d.get("goal"),
+        "answers": d.get("answers"),
+        "sizing_figures_note": "money math is computed client side from these; do not restate amounts",
+        "sizing": d.get("sizing"),
+        "unsure_flags": d.get("unsure", []),
+    }
+    try:
+        out = parse_json(call_ai(ANALYZE_SYSTEM, json.dumps(payload), max_tokens=7000, tag="analyze"))
+        pillars = out.get("pillars") or []
+        if len(pillars) != 4:
+            raise RuntimeError("expected 4 pillars")
+        out["computed"] = compute_verdict(pillars)
+        # enforce conservative cumulative recovery caps
+        caps = [25, 50, 70]
+        for i, ph in enumerate(out.get("roadmap", [])[:3]):
+            try:
+                ph["recovery_pct"] = min(int(ph.get("recovery_pct", caps[i])), caps[i])
+            except Exception:
+                ph["recovery_pct"] = caps[i]
+        for item in out.get("ranking", []):
+            try:
+                item["score"] = round(min(9.9, max(0.0, float(item.get("score", 0)))), 1)
+            except Exception:
+                item["score"] = 5.0
+            item["band"] = rank_band(item["score"])
+        return jsonify(out)
+    except Exception as e:
+        app.logger.error("analyze failed: %s", e)
+        return jsonify({"error": "ai"}), 502
+
+
+# ---------------------------------------------------------------- leads
+
+
+def send_resend(to, subject, html):
+    if not RESEND_API_KEY:
+        return False, "resend not configured"
+    r = requests.post(
+        "https://api.resend.com/emails",
+        headers={"Authorization": f"Bearer {RESEND_API_KEY}", "Content-Type": "application/json"},
+        json={"from": FROM_EMAIL, "to": [to], "subject": subject, "html": html},
+        timeout=30,
+    )
+    ok = r.status_code in (200, 201)
+    if not ok:
+        app.logger.error("resend %s: %s", r.status_code, r.text[:300])
+    return ok, r.text[:200]
+
+
+@app.route("/api/lead", methods=["POST"])
+def api_lead():
+    if rate_limited(client_ip()):
+        return jsonify({"error": "rate"}), 429
+    d = request.get_json(force=True, silent=True) or {}
+    email = (d.get("email") or "").strip()
+    if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email):
+        return jsonify({"error": "email"}), 400
+    lead = {
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "email": email,
+        "name": (d.get("name") or "").strip(),
+        "last_name": (d.get("last_name") or "").strip(),
+        "company": (d.get("company") or "").strip(),
+        "role": d.get("role"), "industry": d.get("industry"),
+        "headline": d.get("headline"), "verdict": d.get("verdict"),
+        "resend": bool(d.get("resend")),
+    }
+    if not lead["resend"]:
+        _append(LEADS_PATH, lead)
+        app.logger.info("LEAD %s | %s | %s | %s", email, lead["company"], lead["verdict"], lead["headline"])
+    emailed = False
+    report_html = d.get("report_html") or ""
+    if report_html:
+        html = f"""
+        <div style="font-family:Arial,Helvetica,sans-serif;max-width:640px;margin:auto;color:#12222E">
+          <div style="background:#22333D;color:#fff;padding:22px 26px;border-radius:14px 14px 0 0">
+            <div style="font-size:12px;letter-spacing:2px;color:#F0995B">PROTECTED HARBOR</div>
+            <h2 style="margin:6px 0 0">Your SaaS Infrastructure Resilience Report</h2>
+          </div>
+          <div style="border:1px solid #EFE2D4;border-top:0;padding:24px 26px;border-radius:0 0 14px 14px">
+            {report_html}
+            <div style="text-align:center;margin:28px 0 8px">
+              <a href="{CALENDLY_URL}" style="background:#DD7A36;color:#fff;padding:13px 26px;border-radius:999px;text-decoration:none;font-weight:bold">Book your free working session</a>
+              <div style="font-size:12px;color:#61707A;margin-top:10px">A working session, not a sales call. Bring your business leaders, not just IT.</div>
+            </div>
+          </div>
+        </div>"""
+        emailed, _ = send_resend(email, "Your Infrastructure Resilience Report | Protected Harbor", html)
+        if not lead["resend"] and NOTIFY_EMAIL:
+            send_resend(
+                NOTIFY_EMAIL,
+                f"New resilience audit lead: {lead['company'] or email} ({lead['verdict']})",
+                f"<p><b>{lead['name']} {lead['last_name']}</b> | {lead['company']} | {lead['role']} | {lead['industry']}<br>"
+                f"{email}<br>Verdict: <b>{lead['verdict']}</b><br>{lead['headline']}</p><hr>{report_html}",
+            )
+    return jsonify({"ok": True, "emailed": emailed})
+
+
+def _admin_ok():
+    return ADMIN_KEY and request.args.get("key") == ADMIN_KEY
+
+
+@app.route("/api/leads")
+def api_leads():
+    if not _admin_ok():
+        return jsonify({"error": "key"}), 403
+    return jsonify(_load(LEADS_PATH))
+
+
+@app.route("/api/leads.csv")
+def api_leads_csv():
+    if not _admin_ok():
+        return jsonify({"error": "key"}), 403
+    rows = _load(LEADS_PATH)
+    cols = ["ts", "email", "name", "last_name", "company", "role", "industry", "headline", "verdict"]
+    out = [",".join(cols)]
+    for r in rows:
+        out.append(",".join('"' + str(r.get(c, "")).replace('"', '""') + '"' for c in cols))
+    return Response("\n".join(out), mimetype="text/csv",
+                    headers={"Content-Disposition": "attachment; filename=leads.csv"})
+
+
+@app.route("/api/event", methods=["POST"])
+def api_event():
+    d = request.get_json(force=True, silent=True) or {}
+    ev = {"ts": datetime.now(timezone.utc).isoformat(), "name": str(d.get("name", ""))[:60],
+          "props": d.get("props", {})}
+    _append(EVENTS_PATH, ev)
+    app.logger.info("EVENT %s %s", ev["name"], json.dumps(ev["props"])[:200])
+    return jsonify({"ok": True})
+
+
+@app.route("/api/events")
+def api_events():
+    if not _admin_ok():
+        return jsonify({"error": "key"}), 403
+    return jsonify(_load(EVENTS_PATH))
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=False)

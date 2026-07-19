@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Can You Take a Server Down? | Protected Harbor Resilience Audit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Mulish:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#FBF6F0; --ink:#1E2D36; --dark:#22333D; --dark2:#2C3F4A;
+  --orange:#DD7A36; --orange-d:#C2621F; --orange-l:#F0995B; --orange-soft:#FAEDE1;
+  --amber:#E2963C; --red:#C4472F; --green:#3E9C6E;
+  --line:#EFE2D4; --muted:#61707A; --card:#FFFFFF;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'Mulish',sans-serif;background:var(--paper);color:var(--ink);line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:800px;margin:0 auto;padding:0 20px}
+h1,h2,h3{font-family:'Poppins',sans-serif;letter-spacing:-0.01em}
+.mono{font-family:'IBM Plex Mono',monospace}
+.eyebrow{font-family:'Poppins',sans-serif;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--orange);font-weight:600}
+button{font-family:inherit;cursor:pointer}
+a{color:var(--orange-d)}
+/* ---------- header ---------- */
+header{background:#fff;padding:14px 0;position:sticky;top:0;z-index:20;border-bottom:1px solid var(--line)}
+.head-in{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{display:flex;align-items:center;gap:11px}
+.logomark{width:32px;height:32px;border-radius:50%;background:conic-gradient(#8B9298 0 70deg,var(--orange) 70deg 115deg,#A9B0B5 115deg 200deg,#8B9298 200deg 280deg,#C2C8CC 280deg 360deg);position:relative;flex:none}
+.logomark::after{content:"";position:absolute;inset:8px;background:#fff;border-radius:50%}
+.brand b{font-family:'Poppins',sans-serif;font-weight:700;font-size:16px;color:var(--ink)}
+.brand b span{color:var(--orange)}
+.brand small{display:block;font-size:10.5px;color:var(--muted);letter-spacing:1.2px;text-transform:uppercase;font-weight:600;font-family:'Poppins',sans-serif}
+.consult-badge{font-family:'Poppins',sans-serif;font-size:10px;letter-spacing:1.5px;background:var(--orange);color:#fff;padding:4px 10px;border-radius:999px;display:none;font-weight:600}
+/* ---------- progress ---------- */
+.progress{height:3px;background:var(--line)}
+.progress i{display:block;height:100%;background:var(--orange);width:0;transition:width .35s}
+/* ---------- screens ---------- */
+.screen{display:none;padding:40px 0 80px}
+.screen.on{display:block;animation:rise .35s ease}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.screen.on{animation:none}}
+/* ---------- hero ---------- */
+.hero{padding:56px 0 30px}
+.hero h1{font-size:clamp(36px,6.4vw,58px);font-weight:800;line-height:1.08;margin:16px 0 20px;color:var(--ink)}
+.hero h1 em{font-style:normal;color:var(--orange)}
+.hero p{color:#3D4C55;max-width:620px;font-size:17px}
+.hero .sub{margin-top:22px;font-family:'Poppins',sans-serif;font-size:11.5px;color:var(--muted);letter-spacing:1.5px;font-weight:600;text-transform:uppercase}
+.rack{display:flex;gap:6px;margin:26px 0 6px}
+.slot{width:46px;height:13px;border-radius:999px;background:#E9DFD3;position:relative}
+.slot::after{content:"";position:absolute;right:6px;top:4.5px;width:4px;height:4px;border-radius:50%;background:var(--green)}
+.slot.down{background:var(--orange-soft)}.slot.down::after{background:var(--orange);animation:blink 1.2s infinite}
+@keyframes blink{0%,100%{opacity:.95}50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){.slot.down::after{animation:none}}
+.cta,.btn{background:var(--orange);color:#fff;border:none;border-radius:999px;padding:15px 30px;font-size:16px;font-weight:600;font-family:'Poppins',sans-serif;box-shadow:0 4px 14px rgba(221,122,54,.28)}
+.cta:hover,.btn:hover{background:var(--orange-d)}
+.btn.ghost{background:var(--orange-soft);color:var(--orange-d);border:1.5px solid #F1D6BC;box-shadow:none}
+.btn.ghost:hover{background:#F6E2CE}
+.btn.sm{padding:10px 20px;font-size:14px}
+.hero .cta{margin-top:28px}
+.timebox{margin-top:14px;font-size:13.5px;color:var(--muted)}
+/* ---------- cards & choices ---------- */
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:26px;margin:18px 0;box-shadow:0 2px 10px rgba(30,45,54,.04)}
+.choices{display:grid;gap:10px;margin-top:18px}
+.choice{background:var(--card);border:1.5px solid var(--line);border-radius:16px;padding:16px 20px;text-align:left;font-size:15.5px;font-weight:600;color:var(--ink);transition:border-color .15s,background .15s}
+.choice:hover{border-color:var(--orange)}
+.choice.sel{border-color:var(--orange);background:var(--orange-soft)}
+.choice small{display:block;color:var(--muted);font-size:13px;margin-top:2px;font-weight:400}
+/* ---------- question ---------- */
+.qnum{font-family:'Poppins',sans-serif;font-size:12px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;font-weight:600}
+.qtext{font-size:clamp(22px,3.4vw,27px);font-weight:700;font-family:'Poppins',sans-serif;margin:10px 0 8px;line-height:1.3}
+.why{display:flex;gap:8px;background:var(--orange-soft);border-left:3px solid var(--orange);border-radius:0 12px 12px 0;padding:11px 15px;margin:14px 0 18px;font-size:13.5px;color:#8A5322}
+.why b{font-family:'Poppins',sans-serif;font-size:10.5px;letter-spacing:1.4px;white-space:nowrap;padding-top:2px;color:var(--orange-d)}
+.ansbox{position:relative}
+textarea,input[type=text],input[type=email],input[type=number]{width:100%;border:1.5px solid var(--line);border-radius:14px;padding:14px 16px;font-family:inherit;font-size:15.5px;background:#fff;color:var(--ink)}
+textarea{min-height:110px;resize:vertical;padding-right:52px}
+textarea:focus,input:focus{outline:2px solid var(--orange);outline-offset:1px;border-color:var(--orange)}
+.mic{position:absolute;right:10px;top:10px;background:#fff;border:1.5px solid var(--line);border-radius:10px;width:36px;height:36px;font-size:16px}
+.mic.rec{border-color:var(--red);color:var(--red);animation:blink 1s infinite}
+.qactions{display:flex;gap:12px;margin-top:16px;flex-wrap:wrap;align-items:center}
+.unsure{background:none;border:none;color:var(--muted);font-size:13.5px;text-decoration:underline;text-underline-offset:3px}
+.unsure:hover{color:var(--orange-d)}
+.skiplink{margin-left:auto}
+.gapnote{font-size:13px;color:#8A5322;background:var(--orange-soft);border:1px solid #F1D6BC;border-radius:12px;padding:10px 14px;margin-top:12px;display:none}
+/* ---------- sizing ---------- */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:560px){.grid2{grid-template-columns:1fr}}
+label.f{display:block;font-size:13px;font-weight:700;margin:0 0 5px;color:var(--ink)}
+label.f small{font-weight:400;color:var(--muted)}
+.curtoggle{display:inline-flex;border:1.5px solid var(--line);border-radius:999px;overflow:hidden;margin-left:10px;vertical-align:middle}
+.curtoggle button{border:none;background:#fff;padding:5px 14px;font-size:13px}
+.curtoggle button.sel{background:var(--orange);color:#fff}
+/* ---------- loading ---------- */
+.loadbox{text-align:center;padding:70px 0}
+.spin{width:44px;height:44px;border:4px solid var(--line);border-top-color:var(--orange);border-radius:50%;margin:0 auto 24px;animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+#loadmsg{font-size:15px;color:var(--muted);min-height:24px}
+/* ---------- gate ---------- */
+.teaser{filter:blur(0)}
+.blurred{filter:blur(5px);pointer-events:none;user-select:none}
+.gate{background:var(--dark);color:#fff;border-radius:22px;padding:32px;margin:24px 0}
+.gate h3{font-size:22px;margin-bottom:6px;font-family:'Poppins',sans-serif}
+.gate p{color:#C8D2D8;font-size:14.5px;margin-bottom:16px}
+.gate input{margin-bottom:10px;border-color:#41525C;background:#2C3F4A;color:#fff}
+.gate .locklist{margin:14px 0 18px;padding:0;list-style:none;font-size:14px;color:#C8D2D8}
+.gate .locklist li{padding:4px 0 4px 26px;position:relative}
+.gate .locklist li::before{content:"\1F512";position:absolute;left:0;font-size:12px;top:6px}
+.tiny{font-size:12px;color:#93A2AB;margin-top:10px}
+/* ---------- report ---------- */
+.rsec{margin:36px 0}
+.rsec h2{font-size:23px;margin:6px 0 12px}
+.verdict-strip{border-radius:22px;padding:30px;color:#fff;background:var(--dark)}
+.vbadge{display:inline-block;font-family:'Poppins',sans-serif;font-weight:700;font-size:14px;letter-spacing:.05em;padding:8px 18px;border-radius:999px;text-transform:uppercase}
+.vb-hardened{background:var(--green)} .vb-exposed{background:var(--orange)} .vb-luck{background:var(--red)}
+.verdict-strip h2{font-size:clamp(22px,4vw,30px);margin:14px 0 8px;line-height:1.3}
+.verdict-strip .meaning{color:#C8D2D8;font-size:14.5px}
+.vlegend{margin-top:16px;font-size:12.5px;color:#93A2AB;border-top:1px solid #34464F;padding-top:12px}
+.vchips{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.vchip{background:#2C3F4A;border-radius:999px;padding:7px 15px;font-size:12.5px;color:#fff;font-family:'Poppins',sans-serif;font-weight:600}
+.goalquote{background:#fff;border:1.5px solid #F1D6BC;border-radius:18px;padding:20px 22px;margin:14px 0}
+.goalquote blockquote{font-family:'Poppins',sans-serif;font-weight:700;font-size:18px;color:var(--ink);margin:6px 0}
+.parthead{display:flex;gap:14px;align-items:flex-start;margin:52px 0 4px;padding-top:22px;border-top:2px solid var(--line)}
+.partnum{width:38px;height:38px;border-radius:50%;background:var(--orange);color:#fff;font-family:'Poppins',sans-serif;font-weight:800;font-size:17px;display:flex;align-items:center;justify-content:center;flex:none}
+.parthead h2{font-size:24px;margin:2px 0 2px}
+.parthead p{font-size:14px;color:var(--muted)}
+.bridge{font-size:14px;color:var(--muted);font-style:italic;border-left:3px solid var(--orange);padding:6px 0 6px 14px;margin:22px 0 0}
+.ptag2{display:inline-block;font-family:'Poppins',sans-serif;font-size:9.5px;letter-spacing:.6px;text-transform:uppercase;font-weight:600;color:var(--orange-d);background:var(--orange-soft);border-radius:999px;padding:2px 9px;margin-top:5px}
+.mapstrip{counter-reset:m}
+.mapstrip div{position:relative;padding:8px 0 8px 34px;font-size:13.5px;border-bottom:1px solid var(--line)}
+.mapstrip div::before{counter-increment:m;content:counter(m);position:absolute;left:0;top:8px;width:22px;height:22px;border-radius:50%;background:var(--orange-soft);color:var(--orange-d);font-family:'Poppins',sans-serif;font-weight:700;font-size:11.5px;display:flex;align-items:center;justify-content:center}
+.bignum{font-family:'Poppins',sans-serif;font-weight:800;font-size:clamp(28px,5vw,40px);color:var(--orange-l)}
+.scale{margin-top:8px}
+.scalebar{display:flex;height:16px;border-radius:999px;overflow:hidden;position:relative}
+.scalebar span{display:block;height:100%}
+.s-luck{background:var(--red);width:40%} .s-exposed{background:var(--amber);width:30%} .s-hard{background:var(--green);width:30%}
+.you{position:absolute;top:-32px;transform:translateX(-50%);text-align:center;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:var(--ink)}
+.you::after{content:"";display:block;width:2px;height:24px;background:var(--ink);margin:2px auto 0}
+.scalelabels{display:flex;font-size:11.5px;color:var(--muted);margin-top:6px}
+.scalelabels div{padding-right:6px} .sl1{width:40%} .sl2{width:30%} .sl3{width:30%}
+.banddesc{font-size:13px;color:var(--muted);margin-top:10px}
+.pillar{margin:16px 0}
+.pillar .ptop{display:flex;justify-content:space-between;font-size:14.5px;font-weight:700}
+.pillar .pdef{font-size:12.5px;color:var(--muted);margin:1px 0 6px}
+.pbar{height:10px;background:#F2EAE0;border-radius:999px;overflow:hidden}
+.pbar i{display:block;height:100%;background:var(--orange);border-radius:999px;transition:width .6s}
+.pillar .preason{font-size:13.5px;color:var(--muted);margin-top:6px}
+.tagline{font-size:11px;font-family:'Poppins',sans-serif;letter-spacing:1.5px;color:#93A2AB;font-weight:600;text-transform:uppercase}
+.kv{display:flex;gap:14px;flex-wrap:wrap;margin-top:14px}
+.kv .k{flex:1;min-width:160px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:0 2px 10px rgba(30,45,54,.04)}
+.kv .k b{display:block;font-family:'Poppins',sans-serif;font-size:24px;font-weight:800;color:var(--orange)}
+.kv .k span{font-size:12.5px;color:var(--muted)}
+.formula{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);background:#F5EEE5;border-radius:12px;padding:11px 15px;margin-top:12px}
+.note{font-size:12.5px;color:var(--muted);font-style:italic;margin-top:8px}
+.svcmap{width:100%;border-collapse:collapse;font-size:14px}
+.svcmap th{text-align:left;font-family:'Poppins',sans-serif;font-size:10.5px;letter-spacing:1.4px;color:var(--muted);padding:8px 10px;border-bottom:2px solid var(--line);text-transform:uppercase}
+.svcmap td{padding:11px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+.svcmap td:nth-child(2){font-weight:700;color:var(--orange-d);white-space:normal}
+.rankrow{display:flex;gap:14px;align-items:flex-start;padding:13px 0;border-bottom:1px solid var(--line)}
+.rankscore{font-family:'Poppins',sans-serif;font-weight:800;font-size:23px;min-width:54px;color:var(--orange)}
+.rband{font-family:'Poppins',sans-serif;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);font-weight:600}
+.phase{border:1px solid var(--line);border-left:4px solid var(--orange);border-radius:0 18px 18px 0;background:#fff;padding:19px 22px;margin:14px 0;box-shadow:0 2px 10px rgba(30,45,54,.04)}
+.phase .ptag{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.effort{font-family:'Poppins',sans-serif;font-size:10px;letter-spacing:1px;border:1px solid var(--line);border-radius:999px;padding:3px 10px;color:var(--muted);text-transform:uppercase;font-weight:600}
+.phase h3{font-size:17px;margin:8px 0 6px}
+.phase .svc{font-size:12.5px;color:var(--orange-d);font-weight:700}
+.phase .recov{font-size:13px;color:var(--green);font-weight:700;margin-top:8px}
+.chartwrap{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px;margin:12px 0;box-shadow:0 2px 10px rgba(30,45,54,.04)}
+.chartwrap h4{font-size:14px;margin-bottom:6px;font-family:'Poppins',sans-serif}
+.trace{border-left:3px solid var(--line);padding:2px 0 2px 16px;margin:12px 0}
+.trace q{font-style:italic;color:var(--ink);font-size:14.5px}
+.trace div{font-size:13.5px;color:var(--muted);margin-top:3px}
+.wider{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.wcard{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 2px 10px rgba(30,45,54,.04)}
+.wcard b{font-family:'Poppins',sans-serif;font-size:22px;font-weight:800;display:block;color:var(--orange)}
+.wcard span{font-size:12.5px;color:#3D4C55}
+.wcard small{display:block;font-family:'Poppins',sans-serif;font-size:9.5px;color:var(--muted);margin-top:8px;letter-spacing:1px;text-transform:uppercase;font-weight:600}
+.pilot{background:var(--orange-soft);border:1.5px solid #F1D6BC;border-radius:18px;padding:22px}
+.ctabox{background:var(--dark);color:#fff;border-radius:22px;padding:34px;text-align:center;margin:30px 0}
+.ctabox h2{font-size:25px}
+.ctabox p{color:#C8D2D8;margin:10px auto 20px;max-width:540px;font-size:15px}
+.ctabox .eyebrow{color:var(--orange-l)}
+.actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:14px}
+.footer-honest{font-size:12.5px;color:var(--muted);text-align:center;margin:26px 0 8px}
+.gloss{background:#fff;border:1px solid var(--line);border-radius:18px;padding:24px}
+.gloss dt{font-weight:700;font-size:14px;margin-top:12px;font-family:'Poppins',sans-serif}
+.gloss dd{font-size:13.5px;color:var(--muted);margin-left:0}
+.resume-banner{background:var(--orange-soft);color:#8A5322;border-bottom:1px solid #F1D6BC;padding:10px 0;font-size:14px;display:none}
+.resume-banner .wrap{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.resume-banner button{border:none;background:var(--orange);color:#fff;border-radius:999px;padding:8px 16px;font-size:13px;font-weight:600}
+.mcq{margin-top:14px}
+.mcq .qtext{font-size:18px}
+.sentok{color:var(--green);font-weight:700}
+footer.site{padding:34px 0 44px;color:var(--muted);font-size:12.5px;text-align:center;border-top:1px solid var(--line);margin-top:40px}
+</style>
+</head>
+<body>
+
+<div class="resume-banner" id="resumeBanner"><div class="wrap">
+  <span>You started this audit earlier. Pick up where you left off?</span>
+  <span><button onclick="resumeState()">Resume</button> <button style="background:none;color:#8A5322;text-decoration:underline;border:none" onclick="clearState()">Start fresh</button></span>
+</div></div>
+
+<header><div class="wrap head-in">
+  <div class="brand"><div class="logomark" aria-hidden="true"></div>
+  <div><b>Protected <span>Harbor</span></b><small>Infrastructure Resilience Audit</small></div><span id="ledAlert" style="display:none"></span></div>
+  <span class="consult-badge" id="consultBadge">CONSULTANT MODE</span>
+</div>
+<div class="progress"><i id="progBar"></i></div>
+</header>
+
+<!-- ============ INTRO ============ -->
+<section class="screen on" id="s-intro"><div class="wrap">
+  <div class="hero">
+    <div class="eyebrow">Free 4 minute self assessment</div>
+    <h1>Can you take a <em>server down</em><br>without holding your breath?</h1>
+    <div class="rack" aria-hidden="true">
+      <span class="slot"></span><span class="slot"></span><span class="slot down"></span><span class="slot"></span><span class="slot"></span><span class="slot"></span>
+    </div>
+    <p>If the honest answer is "we just never do," your infrastructure is making decisions for you. Answer 11 straight questions and get a scored resilience report: your weakest layer, your blind spot, what doing nothing costs in your own figures, and a 90 day plan to fix it.</p>
+    <div class="sub">No generic scores · Your answers, your numbers · Honest verdict even if it's good news</div>
+    <button class="cta" onclick="startAudit()">Start the audit &rarr;</button>
+    <div class="timebox">11 questions · about 4 minutes · report emailed to you</div>
+  </div>
+</div></section>
+
+<!-- ============ LANE ============ -->
+<section class="screen" id="s-lane"><div class="wrap">
+  <div class="eyebrow">Step 1 of 3 · Context</div>
+  <h2 class="qtext">Which world are you operating in?</h2>
+  <p style="color:var(--muted);font-size:14.5px">Every question and every line of your report is read through this lens.</p>
+  <div class="choices" id="laneChoices"></div>
+</div></section>
+
+<!-- ============ ROLE ============ -->
+<section class="screen" id="s-role"><div class="wrap">
+  <div class="eyebrow">Step 2 of 3 · Your seat</div>
+  <h2 class="qtext">And which seat do you sit in?</h2>
+  <p style="color:var(--muted);font-size:14.5px">A CFO and a Head of Infrastructure need different halves of the same truth.</p>
+  <div class="choices" id="roleChoices"></div>
+</div></section>
+
+<!-- ============ QUESTION ============ -->
+<section class="screen" id="s-question"><div class="wrap">
+  <div class="qnum" id="qNum"></div>
+  <h2 class="qtext" id="qText"></h2>
+  <div class="why"><b>WHY WE ASK</b><span id="qWhy"></span></div>
+  <div id="qFree">
+    <div class="ansbox">
+      <textarea id="qAnswer" placeholder="Type or dictate your answer. Honest beats polished."></textarea>
+      <button class="mic" id="micBtn" title="Dictate your answer" aria-label="Dictate">🎙</button>
+    </div>
+    <div class="qactions">
+      <button class="btn" onclick="submitAnswer()">Next</button>
+      <button class="unsure" id="unsureBtn" onclick="reroute()">Not sure? Ask me a different way</button>
+    </div>
+  </div>
+  <div id="qMcq" class="mcq" style="display:none">
+    <div class="qtext" id="mcqText"></div>
+    <div class="choices" id="mcqChoices"></div>
+    <div class="qactions">
+      <button class="unsure" onclick="recordGap()">Still not sure</button>
+      <span style="font-size:13px;color:var(--muted)">or type instead below</span>
+    </div>
+    <div class="ansbox" style="margin-top:12px">
+      <textarea id="mcqFree" placeholder="Your own words work too."></textarea>
+    </div>
+    <div class="qactions"><button class="btn" onclick="submitMcqFree()">Next</button></div>
+  </div>
+  <div class="gapnote" id="gapNote">No problem. We've noted this as an open question, and your report will treat it honestly as a gap rather than guessing.</div>
+</div></section>
+
+<!-- ============ FOLLOW UP ============ -->
+<section class="screen" id="s-followup"><div class="wrap">
+  <div class="qnum">A quick follow up</div>
+  <h2 class="qtext" id="fuText"></h2>
+  <div class="ansbox">
+    <textarea id="fuAnswer" placeholder="One or two sentences is plenty."></textarea>
+    <button class="mic" id="micBtn2" title="Dictate" aria-label="Dictate">🎙</button>
+  </div>
+  <div class="qactions">
+    <button class="btn" onclick="submitFollowup()">Next</button>
+    <button class="unsure skiplink" onclick="skipFollowup()">Skip this one</button>
+  </div>
+</div></section>
+
+<!-- ============ GOAL ============ -->
+<section class="screen" id="s-goal"><div class="wrap">
+  <div class="qnum">The question everything else is filtered through</div>
+  <h2 class="qtext">What is the one business goal that matters most in the next 12 months?</h2>
+  <div class="why"><b>WHY WE ASK</b><span>Infrastructure work only matters if it serves the business. Every phase of your roadmap gets filtered through this goal, in your words.</span></div>
+  <div class="choices" id="goalChoices"></div>
+  <p style="font-size:13px;color:var(--muted);margin:16px 0 6px">Or say it in your own words, which is even better:</p>
+  <div class="ansbox">
+    <textarea id="goalAnswer" placeholder="e.g. add 100K of monthly recurring revenue, land two enterprise clients, pass SOC 2 without drama..."></textarea>
+    <button class="mic" id="micBtn3" title="Dictate" aria-label="Dictate">🎙</button>
+  </div>
+  <div class="qactions"><button class="btn" onclick="submitGoal()">Next</button></div>
+</div></section>
+
+<!-- ============ SIZING ============ -->
+<section class="screen" id="s-sizing"><div class="wrap">
+  <div class="eyebrow">Last step · Your numbers</div>
+  <h2 class="qtext">Size it in your own figures
+    <span class="curtoggle" role="group" aria-label="Currency"><button id="curUSD" class="sel" onclick="setCur('$')">$</button><button id="curGBP" onclick="setCur('£')">£</button></span>
+  </h2>
+  <p style="color:var(--muted);font-size:14.5px;margin-bottom:18px">We never invent money. Every cost figure in your report is computed from these numbers and nothing else. Skip this and the report simply shows no money sections.</p>
+  <div class="grid2">
+    <div><label class="f">Active users on your platform <small>(rough is fine)</small></label><input type="number" id="szUsers" min="0" placeholder="e.g. 12000"></div>
+    <div><label class="f">Monthly revenue <small>(recurring or average)</small></label><input type="number" id="szRevenue" min="0" placeholder="e.g. 400000"></div>
+    <div><label class="f">Average outage length, hours</label><input type="number" id="szOutHrs" min="0" step="0.5" placeholder="e.g. 3"></div>
+    <div><label class="f">Unplanned outages per year <small>(honest count)</small></label><input type="number" id="szOutYr" min="0" placeholder="e.g. 4"></div>
+    <div><label class="f">Engineering hours per month lost to firefighting <small>(instead of roadmap work)</small></label><input type="number" id="szFFHrs" min="0" placeholder="e.g. 60"></div>
+    <div><label class="f">Fully loaded engineer cost per hour <small>(optional; hours shown without it)</small></label><input type="number" id="szRate" min="0" placeholder="e.g. 95"></div>
+    <div><label class="f">SLA penalty exposure per incident <small>(optional)</small></label><input type="number" id="szSLA" min="0" placeholder="e.g. 5000"></div>
+  </div>
+  <div class="qactions">
+    <button class="btn" onclick="submitSizing(false)">Build my report</button>
+    <button class="unsure skiplink" onclick="submitSizing(true)">Skip the numbers</button>
+  </div>
+</div></section>
+
+<!-- ============ LOADING ============ -->
+<section class="screen" id="s-loading"><div class="wrap loadbox">
+  <div class="spin" aria-hidden="true"></div>
+  <div id="loadmsg">Reading your answers...</div>
+</div></section>
+
+<!-- ============ GATE / REPORT ============ -->
+<section class="screen" id="s-report"><div class="wrap">
+  <div id="teaser"></div>
+  <div class="gate" id="gateBox">
+    <h3>Your full report is ready</h3>
+    <p>Unlock it here and we'll email you a copy you can forward to the rest of the leadership team.</p>
+    <ul class="locklist">
+      <li>Your four pillar scorecard and weakest layer</li>
+      <li>The blind spot: the one thing you're not seeing</li>
+      <li>What doing nothing costs, in your own figures</li>
+      <li>A 90 day roadmap with the first fix that takes the biggest bite</li>
+    </ul>
+    <input type="email" id="gEmail" placeholder="Work email *" autocomplete="email" required>
+    <div class="grid2">
+      <input type="text" id="gName" placeholder="First name *" autocomplete="given-name" required>
+      <input type="text" id="gLast" placeholder="Last name *" autocomplete="family-name" required>
+    </div>
+    <input type="text" id="gCompany" placeholder="Company *" autocomplete="organization" required>
+    <button class="btn" style="width:100%;margin-top:8px" onclick="unlockReport()">Unlock my full report</button>
+    <div class="tiny">No spam, no drip sequence. One report, one optional working session invite.</div>
+  </div>
+  <div id="fullReport" style="display:none"></div>
+</div></section>
+
+<footer class="site"><div class="wrap">
+  Protected Harbor · SaaS infrastructure engineering · One accountable partner for application performance, security and costs.<br>
+  This assessment produces estimates from your own figures, not guarantees. protectedharbor.com
+</div></footer>
+
+<script>
+/* ================================================================== state */
+const CALENDLY = "{{ calendly_url }}";
+const CONTACT = "{{ contact_email }}";
+const CONSULTANT = new URLSearchParams(location.search).get("mode")==="consultant";
+if(CONSULTANT) document.getElementById("consultBadge").style.display="inline-block";
+
+const LANES = [
+  {id:"healthcare", label:"Healthcare SaaS", sub:"Patient facing or clinical platforms where downtime and data exposure carry regulatory weight"},
+  {id:"saas", label:"B2B SaaS and software", sub:"A software product other businesses depend on every day"},
+  {id:"regulated", label:"Regulated industries", sub:"Finance, legal, insurance: platforms where auditors and regulators read your incident log"},
+];
+const ROLES = [
+  {id:"cio", label:"CIO / CTO", sub:"You own the technology story"},
+  {id:"coo", label:"COO", sub:"You own operations, uptime is your day"},
+  {id:"cfo", label:"CFO", sub:"You own the number this all costs"},
+  {id:"it", label:"Director of IT", sub:"You own the environment day to day"},
+  {id:"infra", label:"Head of Infrastructure / Cloud", sub:"You own the layer everything runs on"},
+  {id:"ceo", label:"Founder / CEO", sub:"You own all of it, whether you like it or not"},
+];
+
+/* 11 core questions. `canned` = offline reroute fallbacks (doctrine: never blank). */
+const QUESTIONS = [
+ {id:"stack", n:1, followup:false,
+  q:"What does your application run on today, and who manages it?",
+  why:"Everything downstream depends on where the single points of failure can hide: cloud, on prem, hybrid, an MSP, or one very tired person.",
+  canned:{q:"Which of these sounds most like your setup?",o:["It's all in public cloud and our own team manages it","It's hybrid: some cloud, some servers we own","An outside provider or MSP manages most of it","Honestly, it grew organically and no one drew the map","On prem, our own hardware, our own people"]}},
+ {id:"server", n:2, followup:true,
+  q:"If you took one server offline right now for maintenance, what happens?",
+  why:"This one answer predicts almost everything: whether workloads are pooled, whether the app can survive losing a piece, and whether maintenance actually ever happens.",
+  canned:{q:"Be honest, which is closest?",o:["Nothing happens, traffic shifts automatically and no one notices","Some clients would feel it, so we schedule it carefully","We'd have to warn clients first, it means downtime","We simply never take servers down","I genuinely don't know what would happen"]}},
+ {id:"outage", n:3, followup:true,
+  q:"When was your last unplanned outage, how long did it last, and what caused it?",
+  why:"Outage history is the honest version of your architecture diagram.",
+  canned:{q:"Which is closest to your outage reality?",o:["Can't remember the last one, it's been over a year","One or two a year, short ones, quickly resolved","A few a year and some drag on for hours","It's a regular event and everyone braces for it","I don't have visibility into outage history"]}},
+ {id:"redundancy", n:4, followup:false,
+  q:"Do you have multiple paths for connectivity, data and failover, and have they ever actually been exercised?",
+  why:"A failover that has never fired is a hope, not a plan.",
+  canned:{q:"Which statement is true for you?",o:["Yes, redundant paths, and we test failover on a schedule","We have redundancy on paper but have never pulled the plug to prove it","Some layers have a plan B, others definitely don't","There's one path for most things, if it fails, we're down","I'd have to ask the team"]}},
+ {id:"debt", n:5, followup:true,
+  q:"Is there anything in your environment you cannot patch or update, because it can never come down?",
+  why:"Environments that cannot do maintenance are the ones ransomware walks into.",
+  canned:{q:"Which sounds most familiar?",o:["No, everything gets patched on a normal cycle","There are one or two boxes nobody dares touch","Several systems are frozen in time because downtime isn't allowed","We patch when something breaks, not on a schedule","I don't know our patch reality"]}},
+ {id:"recovery", n:6, followup:false,
+  q:"Do you know your recovery time and recovery point, and when did you last test a real restore?",
+  why:"Backups are only real on the day you restore one. Recovery time is how long you're down; recovery point is how much data you'd lose.",
+  canned:{q:"Pick the honest one:",o:["We know both numbers and we've tested a real restore this year","We have backups but have never tested a full restore","We tested once, a long time ago","I couldn't tell you either number","Backups are someone else's department"]}},
+ {id:"security", n:7, followup:false,
+  q:"Who owns security end to end, and has the environment ever had a breach or a near miss?",
+  why:"In siloed teams the database person, the storage person and the firewall person each know their slice, and nobody owns the whole.",
+  canned:{q:"Which is closest?",o:["One named owner covers security end to end","It's shared across a few people, which means it's owned by no one","An outside firm handles it, we get reports","We've had a near miss or worse and it changed how we work","We've had a near miss or worse and honestly not much changed"]}},
+ {id:"scale", n:8, followup:false,
+  q:"If users or data doubled in the next 12 months, what breaks first?",
+  why:"Growth finds the weakest layer before you do.",
+  canned:{q:"What would give out first?",o:["Nothing, we've headroom and have load tested it","The database, it's already the thing we baby","The application itself, performance already complains","The people, the team is the bottleneck","No idea, we've never modelled it"]}},
+ {id:"ai", n:9, followup:true,
+  q:"What is the business asking for on AI, and can your data and infrastructure actually support it today?",
+  why:"You cannot have AI without infrastructure. This is where 'should you' matters as much as 'can you'.",
+  canned:{q:"Where are you on AI?",o:["The board wants AI and the infrastructure is genuinely ready","The board wants AI and the data isn't in a state to feed it","Teams are already using AI tools, unofficially and unmanaged","We're deliberately waiting, and it's a considered choice","No AI pressure yet"]}},
+ {id:"cost", n:10, followup:false,
+  q:"What is your infrastructure spend doing year on year, and are you exposed to the VMware repricing, or thinking about pulling workloads back from public cloud?",
+  why:"Renewal shocks and cloud bills are forcing the industry to rethink where applications live. Your exposure decides whether cost is a pillar problem or background noise.",
+  canned:{q:"Which describes your cost picture?",o:["Spend is flat and predictable, no nasty renewals ahead","Cloud spend keeps creeping and no one fully owns it","We're staring at a VMware or licence renewal shock","We're actively considering moving workloads back in house","I don't see the infrastructure bill"]}},
+ {id:"team", n:11, followup:false,
+  q:"Who gets the call at 2am, and how many people on the team can actually solve a critical problem end to end?",
+  why:"Resilience is people and process as much as hardware.",
+  canned:{q:"The 2am reality:",o:["A proper on call rota, and several people can run an incident end to end","One hero gets every call, and everyone knows who","Our MSP or provider gets the call, we find out in the morning","It depends what breaks, ownership is fuzzy","I honestly don't know who'd get that call"]}},
+];
+
+let state = {
+  industry:null, role:null, qi:0, answers:{}, unsure:[], goal:"",
+  sizing:null, cur:"$", ts:Date.now(), done:false
+};
+let report=null, reportIsFallback=false, currentFU=null;
+
+/* ------------------------------------------------ persistence + analytics */
+function saveState(){ state.ts=Date.now(); try{localStorage.setItem("ph_audit",JSON.stringify(state));}catch(e){} }
+function clearState(){ try{localStorage.removeItem("ph_audit");}catch(e){} document.getElementById("resumeBanner").style.display="none"; }
+function checkResume(){
+  try{
+    const s=JSON.parse(localStorage.getItem("ph_audit")||"null");
+    if(s && !s.done && Date.now()-s.ts < 24*3600*1000 && (s.industry||Object.keys(s.answers||{}).length)){
+      window._saved=s; document.getElementById("resumeBanner").style.display="block";
+    }
+  }catch(e){}
+}
+function resumeState(){
+  state=window._saved; document.getElementById("resumeBanner").style.display="none";
+  if(!state.industry) show("s-lane");
+  else if(!state.role) show("s-role");
+  else if(state.qi < QUESTIONS.length){ show("s-question"); renderQuestion(); }
+  else if(!state.goal) show("s-goal");
+  else show("s-sizing");
+  track("resume");
+}
+function track(name,props){ try{navigator.sendBeacon("/api/event",new Blob([JSON.stringify({name,props:props||{}})],{type:"application/json"}));}catch(e){} }
+
+/* ------------------------------------------------ navigation */
+function show(id){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("on"));
+  document.getElementById(id).classList.add("on");
+  window.scrollTo({top:0});
+  const steps = 3+QUESTIONS.length+2;
+  let done=0;
+  if(state.industry)done++; if(state.role)done++;
+  done+=Math.min(state.qi,QUESTIONS.length);
+  if(state.goal)done++; if(state.sizing!==null)done++;
+  document.getElementById("progBar").style.width=(id==="s-report"?100:Math.round(done/steps*100))+"%";
+}
+const GOAL_OPTS=[
+  "Grow recurring revenue without growing headcount",
+  "Land larger enterprise clients who audit our infrastructure",
+  "Pass a security or compliance audit without drama (SOC 2, HIPAA, ISO 27001)",
+  "Cut infrastructure cost without cutting reliability",
+  "Launch an AI capability the business is asking for",
+  "Get through a migration or replatform that is already planned",
+];
+function renderGoalChoices(){
+  const gc=document.getElementById("goalChoices"); gc.innerHTML="";
+  GOAL_OPTS.forEach(g=>{ const b=document.createElement("button"); b.className="choice"; b.textContent=g;
+    b.onclick=()=>{ state.goal=g; saveState(); track("goal",{via:"choice"}); show("s-sizing"); };
+    gc.appendChild(b); });
+}
+function startAudit(){ track("start"); renderChoices(); renderGoalChoices(); show("s-lane"); }
+
+function renderChoices(){
+  const lc=document.getElementById("laneChoices"); lc.innerHTML="";
+  LANES.forEach(l=>{ const b=document.createElement("button"); b.className="choice";
+    b.innerHTML=`${l.label}<small>${l.sub}</small>`;
+    b.onclick=()=>{ state.industry=l.label; saveState(); track("lane",{lane:l.id}); show("s-role"); };
+    lc.appendChild(b); });
+  const rc=document.getElementById("roleChoices"); rc.innerHTML="";
+  ROLES.forEach(r=>{ const b=document.createElement("button"); b.className="choice";
+    b.innerHTML=`${r.label}<small>${r.sub}</small>`;
+    b.onclick=()=>{ state.role=r.label; saveState(); track("role",{role:r.id}); renderQuestion(); show("s-question"); };
+    rc.appendChild(b); });
+}
+
+/* ------------------------------------------------ questions */
+function renderQuestion(){
+  const Q=QUESTIONS[state.qi];
+  document.getElementById("qNum").textContent=`Question ${Q.n} of ${QUESTIONS.length}`;
+  document.getElementById("qText").textContent=Q.q;
+  document.getElementById("qWhy").textContent=Q.why;
+  document.getElementById("qAnswer").value="";
+  document.getElementById("qFree").style.display="block";
+  document.getElementById("qMcq").style.display="none";
+  document.getElementById("gapNote").style.display="none";
+  document.getElementById("unsureBtn").style.display="inline";
+}
+async function submitAnswer(){
+  const Q=QUESTIONS[state.qi];
+  const a=document.getElementById("qAnswer").value.trim();
+  if(!a){ document.getElementById("qAnswer").focus(); return; }
+  state.answers[Q.id]={question:Q.q, answer:a}; saveState(); track("answered",{q:Q.id});
+  if((Q.followup||CONSULTANT)){ await maybeFollowup(Q,a); } else { nextQuestion(); }
+}
+async function maybeFollowup(Q,a){
+  try{
+    const r=await fetch("/api/followup",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({industry:state.industry,role:state.role,question:Q.q,answer:a})});
+    const d=await r.json();
+    if(d.followup){ currentFU={qid:Q.id,text:d.followup};
+      document.getElementById("fuText").textContent=d.followup;
+      document.getElementById("fuAnswer").value=""; show("s-followup"); return; }
+  }catch(e){}
+  nextQuestion();
+}
+function submitFollowup(){
+  const a=document.getElementById("fuAnswer").value.trim();
+  if(a && currentFU){ state.answers[currentFU.qid].followup_question=currentFU.text;
+    state.answers[currentFU.qid].followup_answer=a; saveState(); }
+  currentFU=null; nextQuestion();
+}
+function skipFollowup(){ currentFU=null; nextQuestion(); }
+function nextQuestion(){
+  state.qi++; saveState();
+  if(state.qi<QUESTIONS.length){ renderQuestion(); show("s-question"); }
+  else show("s-goal");
+}
+
+/* --- "Not sure" two stage reroute --- */
+async function reroute(){
+  const Q=QUESTIONS[state.qi]; track("unsure",{q:Q.id});
+  let mcq=Q.canned;
+  try{
+    const prior={}; Object.values(state.answers).forEach(a=>{prior[a.question]=a.answer});
+    const r=await fetch("/api/reroute",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({industry:state.industry,role:state.role,question:Q.q,rationale:Q.why,prior})});
+    if(r.ok){ const d=await r.json(); if(d.options&&d.options.length) mcq={q:d.question||Q.canned.q,o:d.options}; }
+  }catch(e){}
+  document.getElementById("qFree").style.display="none";
+  document.getElementById("unsureBtn").style.display="none";
+  const box=document.getElementById("qMcq"); box.style.display="block";
+  document.getElementById("mcqText").textContent=mcq.q;
+  const cc=document.getElementById("mcqChoices"); cc.innerHTML="";
+  mcq.o.forEach(opt=>{ const b=document.createElement("button"); b.className="choice"; b.textContent=opt;
+    b.onclick=()=>{ state.answers[Q.id]={question:Q.q,answer:opt,via:"multiple choice"}; saveState();
+      track("answered",{q:Q.id,via:"mcq"}); nextQuestion(); };
+    cc.appendChild(b); });
+}
+function submitMcqFree(){
+  const Q=QUESTIONS[state.qi];
+  const a=document.getElementById("mcqFree").value.trim();
+  if(!a){ document.getElementById("mcqFree").focus(); return; }
+  state.answers[Q.id]={question:Q.q,answer:a}; saveState(); nextQuestion();
+}
+function recordGap(){
+  const Q=QUESTIONS[state.qi];
+  state.answers[Q.id]={question:Q.q,answer:"Not sure, flagged as an open question",unsure:true};
+  state.unsure.push(Q.id); saveState(); track("gap",{q:Q.id});
+  document.getElementById("gapNote").style.display="block";
+  setTimeout(nextQuestion,1300);
+}
+
+function submitGoal(){
+  const g=document.getElementById("goalAnswer").value.trim();
+  if(!g){ document.getElementById("goalAnswer").focus(); return; }
+  state.goal=g; saveState(); track("goal",{via:"typed"}); show("s-sizing");
+}
+function setCur(c){ state.cur=c;
+  document.getElementById("curUSD").classList.toggle("sel",c==="$");
+  document.getElementById("curGBP").classList.toggle("sel",c==="£"); saveState(); }
+function num(id){ const v=parseFloat(document.getElementById(id).value); return isNaN(v)?0:v; }
+function submitSizing(skipped){
+  state.sizing = skipped?{skipped:true}:{
+    users:num("szUsers"), revenue:num("szRevenue"), outHrs:num("szOutHrs"),
+    outYr:num("szOutYr"), ffHrs:num("szFFHrs"), rate:num("szRate"), sla:num("szSLA"),
+    skipped:false };
+  saveState(); track(skipped?"sizing_skipped":"sizing_done"); runAnalysis();
+}
+
+/* ------------------------------------------------ money math (client side, their figures only) */
+function money(){
+  const s=state.sizing||{}; if(s.skipped) return null;
+  const HOURS=160; /* 40 hours a week times 4 weeks, stated in the report */
+  const revHr = s.revenue>0 ? s.revenue/HOURS : 0;
+  const outageYr = revHr*(s.outHrs||0)*(s.outYr||0) + (s.sla||0)*(s.outYr||0);
+  const ffMonth = (s.rate>0 && s.ffHrs>0) ? s.ffHrs*s.rate : 0;
+  const bleedMonth = outageYr/12 + ffMonth;
+  return { HOURS, revHr, outageYr, ffMonth, bleedMonth,
+    ffHrsWeek: s.ffHrs?s.ffHrs/4:0, hasMoney: bleedMonth>0, hasHours: (s.ffHrs||0)>0 };
+}
+function fmt(n){ return state.cur + Math.round(n).toLocaleString("en-US"); }
+
+/* ------------------------------------------------ analysis */
+const LOADMSGS=["Reading your answers...","Scoring the four pillars...","Looking for the blind spot...","Working out what doing nothing costs, from your figures...","Building the 90 day plan, quick wins first..."];
+async function runAnalysis(){
+  show("s-loading"); track("analyze_start");
+  let mi=0; const iv=setInterval(()=>{ mi=(mi+1)%LOADMSGS.length;
+    document.getElementById("loadmsg").textContent=LOADMSGS[mi]; },3400);
+  try{
+    const r=await fetch("/api/analyze",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({industry:state.industry,role:state.role,goal:state.goal,
+        answers:state.answers,sizing:state.sizing,unsure:state.unsure})});
+    if(!r.ok) throw new Error("api");
+    report=await r.json(); reportIsFallback=false;
+  }catch(e){ report=fallbackReport(); reportIsFallback=true; track("fallback_report"); }
+  clearInterval(iv);
+  state.done=true; saveState(); track("report_ready",{verdict:report.computed.verdict});
+  renderTeaser(); show("s-report");
+  if(CONSULTANT){ document.getElementById("gateBox").style.display="none"; revealReport(); }
+}
+
+/* Deterministic client side fallback: the report can never render blank. */
+function scoreAnswer(txt){
+  if(!txt) return 3;
+  let t=txt.toLowerCase().replace(/never (tested|test|fired|exercised|restored)|not tested|haven.?t tested/g,"neg_flag");
+  if(/not sure|no idea|don.?t know|flagged as an open question|fuzzy|have to ask/.test(t)) return 2.5;
+  let s=5;
+  if(/neg_flag|never|can.?t|cannot|frozen|one path|no one|nobody|hero|creep|shock|unmanaged|drag|regular event|warn clients|baby|bottleneck|isn.?t in a state|nothing gets|when something breaks/.test(t)) s-=2.2;
+  if(/automatic|automatically|tested|test|schedule|rota|pooled|pool|failover fired|headroom|load tested|named owner|end to end|flat and predictable|restore this year|shifts/.test(t)) s+=2.6;
+  return Math.max(1,Math.min(9,s));
+}
+function fallbackReport(){
+  const A=id=>state.answers[id]||{answer:""};
+  const px=(ids)=>{ const arr=ids.map(i=>scoreAnswer(A(i).answer)); return Math.round(arr.reduce((a,b)=>a+b,0)/arr.length*10)/10; };
+  const pillars=[
+    {key:"resilience",name:"Resilience and availability",score:px(["server","redundancy"]),reason:"Scored from what you told us about taking servers down and whether your failover paths have ever actually been exercised."},
+    {key:"security",name:"Security and maintenance debt",score:px(["debt","security"]),reason:"Scored from your patch reality and who, if anyone, owns security end to end."},
+    {key:"scale",name:"Scalability, performance and cost",score:px(["scale","cost","outage"]),reason:"Scored from what breaks at 2x, your cost pressure, and your outage history."},
+    {key:"ops",name:"Operational readiness",score:px(["recovery","team","stack"]),reason:"Scored from your restore testing, the 2am answer, and how well mapped the environment is."},
+  ];
+  const gaps=state.unsure.length;
+  return {
+    headline:"Your environment runs, but several answers point at layers that have never been proven under failure"+(gaps?", and "+gaps+" open questions mean parts of the picture are unknown even to you.":"."),
+    pillars,
+    computed: computeVerdictJS(pillars),
+    painkiller:{label:"Painkiller",reason:"Based on your answers, infrastructure gaps are costing you time and risk today, not someday. This is a wound to close, not a vitamin to consider."},
+    first_move:"Exercise one failover for real on a low stakes workload this month, because until a failover has actually fired, your weakest pillar is a hope rather than a plan.",
+    within_reach:"You already know where the bodies are buried: the answers above name the frozen systems, the untested layers and who carries the 2am call. That honesty is the hard part. The fixes themselves are well trodden engineering, sequenced small first, and none of them require a rebuild to start.",
+    return_source:"The return is not the outage maths alone. It is what the recovered engineering hours do instead: roadmap work rather than firefighting, and the enterprise deals that stop stalling when a prospect's security review meets an environment with tested answers. Freed capacity redeployed into revenue is the real number.",
+    blind_spot:"The most common blind spot in answers like yours: redundancy that exists on paper but has never fired. A failover that has never been exercised is a hope, not a plan, and you only find out which one you have during a real incident.",
+    frankenstein:"Your answers suggest systems and responsibilities that grew one bolt at a time rather than as one connected design. Every specialist knows their slice; the risk lives in the seams between them. On AI: the right first question is not can you, it is should you yet, because AI built on shaky infrastructure just fails faster.",
+    ransomware_exposure:"Anything in your environment that cannot come down for patching is, by definition, running known vulnerabilities. Environments that cannot do maintenance are the ones ransomware walks into, because attackers do not need a clever exploit when an old one is still open.",
+    ai_readiness:"Before any AI initiative, the infrastructure has to answer two things: is the data collected in a form that is actually queryable, and can the platform carry the load. Close the weakest pillar first; AI amplifies whatever foundation it sits on, good or bad.",
+    one_initiative:{title:"Prove you can lose a component and stay up",why:"One initiative, not four. Pooling and exercised failover unlocks maintenance, which unlocks patching, which closes the security gap. Every other fix gets easier once this is true."},
+    frankenstein_risk: pillars[1].score<4?"High":pillars[1].score<7?"Medium":"Low",
+    shadow_ai:{level:/unmanaged|unofficial|quietly|personal chatgpt/i.test((A("ai").answer||""))?"Medium":"Low",
+      text:/unmanaged|unofficial|quietly/i.test((A("ai").answer||"")) ?
+        "Your answers suggest AI tools are being used without a formal decision behind them. That means company or client data may be sitting in consumer tools with no audit trail, which matters double in an environment your clients audit. It does not need to become a crisis, but it needs a simple written policy before AI use expands." :
+        "Nothing in your answers points at unofficial AI use today. Keep it that way with a one page policy before the team starts experimenting, because shadow AI arrives quietly, not by announcement."},
+    why_winner:"Failover and pooling beats the other candidates on impact and risk reduction combined: it is the fix that makes every other fix safe to do. The runners up are sequenced after it, not alongside it.",
+    current_state:"Right now, taking anything down is an event: maintenance waits, patches queue behind uptime, and the honest answers above include at least one layer that has never been proven under failure. The people who know the environment best carry it in their heads, and the 2am call has a name rather than a rota.",
+    future_state:"By day 90, one workload has failed over on purpose and nobody outside the team noticed. Maintenance windows exist and get used, the patch backlog is moving, a restore has been tested for real, and the environment has one named owner per layer instead of a set of adjacent specialists.",
+    pain_service_map:[
+      {pain:"Application performance problems",pillar:"Scalability, performance and cost",service:"SaaS infrastructure engineering",how:"Find and fix the layer actually causing the slowdown instead of guessing between database, storage and code."},
+      {pain:"Cannot take servers down / no safe maintenance",pillar:"Resilience and availability",service:"Managed hosting and high availability environments",how:"Pooled servers and exercised failover so maintenance stops being an event."},
+      {pain:"Security and patching debt",pillar:"Security and maintenance debt",service:"Security hardening",how:"One accountable owner for the whole surface, not five specialists each holding a slice."},
+      {pain:"Cost pressure and renewal shocks",pillar:"Scalability, performance and cost",service:"Migration and DevOps repair",how:"Rework where workloads live so the bill reflects a decision, not history."},
+      {pain:"Internal management stretch",pillar:"Operational readiness",service:"One accountable partner",how:"The easy button: one accountable owner for performance, security and costs."},
+    ],
+    ranking:[
+      {title:"Exercised failover and server pooling",score:8.4,band:"Exceptional leverage",components:{impact:9,feasibility:8,time_to_value:7,risk_reduction:9},reason:"Highest impact and risk reduction: it converts every future incident from an outage into a non event."},
+      {title:"Patch and maintenance debt clearance",score:7.2,band:"Strong candidate",components:{impact:7,feasibility:8,time_to_value:7,risk_reduction:8},reason:"Strong risk reduction, fully feasible once maintenance windows exist."},
+      {title:"Tested restore and known recovery numbers",score:6.6,band:"Strong candidate",components:{impact:6,feasibility:9,time_to_value:8,risk_reduction:6},reason:"Fast time to value: one tested restore turns backups from faith into fact."},
+      {title:"AI readiness groundwork",score:5.4,band:"Viable with preparation",components:{impact:8,feasibility:4,time_to_value:4,risk_reduction:4},reason:"Real impact but depends on the pillars above being fixed first."},
+    ],
+    roadmap:[
+      {phase:1,days:"Days 0 to 30",title:"Prove the environment under failure",what:"Map the real single points of failure, exercise one failover for real, open the first safe maintenance window. The first fix takes the biggest bite of the onion.",service:"SaaS infrastructure engineering",effort:"Moderate",recovery_pct:20},
+      {phase:2,days:"Days 30 to 60",title:"Clear the debt the windows unlock",what:"Patch the frozen systems, test a full restore, put names on security ownership end to end.",service:"Security hardening",effort:"Moderate",recovery_pct:45},
+      {phase:3,days:"Days 60 to 90",title:"Make it stay fixed",what:"Pooled workloads, an on call rota that isn't one hero, cost baseline reset, and the AI groundwork now standing on solid footing.",service:"Managed hosting and high availability environments",effort:"Heavy",recovery_pct:65},
+    ],
+    goal_tieback:'You told us your 12 month goal: "'+state.goal+'". Every phase above is filtered through it. Infrastructure that can take a hit without drama is what lets the business chase that goal instead of firefighting.',
+    trace: Object.values(state.answers).map(a=>({answer_quote:(a.answer||"").slice(0,110),what_it_changed:"Fed the pillar scores and shaped which fixes lead the roadmap."})),
+    pilot:{title:"The two week pilot",what:"One workload, one exercised failover, one tested restore, documented. Small enough to say yes to this week, real enough to prove the whole approach and arm you internally."},
+  };
+}
+function computeVerdictJS(pillars){
+  const scores=pillars.map(p=>p.score);
+  const weakest=Math.min(...scores);
+  const wp=pillars[scores.indexOf(weakest)].name;
+  const bands=[
+    {key:"luck",name:"Running on luck",min:0,max:3.99,meaning:"The next incident sets your timeline, not you. Specific gaps mean an ordinary failure becomes an outage."},
+    {key:"exposed",name:"Exposed in places",min:4,max:6.99,meaning:"The foundations exist but specific, known gaps remain. Fixable inside 90 days."},
+    {key:"hardened",name:"Hardened",min:7,max:10,meaning:"You can take a server down. The remaining work is optimisation, not rescue."}];
+  const b=bands.find(x=>weakest>=x.min&&weakest<=x.max);
+  let nxt=null; for(const x of bands){ if(x.min>weakest){ nxt={name:x.name,gap:Math.round((x.min-weakest)*10)/10}; break; } }
+  return {verdict:b.name,verdict_key:b.key,verdict_meaning:b.meaning,weakest_pillar:wp,
+    weakest_score:Math.round(weakest*10)/10,
+    readiness_pct:Math.round(scores.reduce((a,c)=>a+c,0)/(10*scores.length)*100),
+    next_band:nxt,bands,
+    rule:"Weakest pillar 7 or above: Hardened. 4 to 6.9: Exposed in places. Under 4: Running on luck. Your verdict follows your lowest pillar, because an environment is only as resilient as its weakest layer."};
+}
+
+/* ------------------------------------------------ teaser + gate */
+function vClass(k){ return k==="hardened"?"vb-hardened":k==="luck"?"vb-luck":"vb-exposed"; }
+function fixSize(){
+  const efforts=(report.roadmap||[]).map(p=>(p.effort||"").toLowerCase());
+  return efforts.includes("heavy")?"Heavy fix":efforts.includes("moderate")?"Medium fix":"Light fix";
+}
+function renderTeaser(){
+  const c=report.computed, m=money();
+  const led=document.getElementById("ledAlert");
+  if(led) led.style.display="none";
+  const chips=[
+    `<span class="vchip">${esc(report.painkiller.label)}</span>`,
+    m&&m.hasMoney?`<span class="vchip">Costing you ~${fmt(m.bleedMonth)}/mo</span>`:"",
+    `<span class="vchip">${c.readiness_pct}% ready</span>`,
+    `<span class="vchip ${vClass(c.verdict_key)}">${c.verdict}</span>`,
+    `<span class="vchip">${fixSize()}</span>`,
+  ].filter(Boolean).join("");
+  let costLine = m&&m.hasMoney ? `<div style="margin-top:16px"><span class="tagline">ESTIMATED COST OF DOING NOTHING, FROM YOUR OWN FIGURES</span><div class="bignum">${fmt(m.bleedMonth)}<span style="font-size:16px;color:#C8D2D8"> / month</span></div></div>` : "";
+  document.getElementById("teaser").innerHTML=`
+    <div class="verdict-strip">
+      <span class="eyebrow" style="color:var(--orange-l)">Your verdict in 15 seconds</span>
+      <h2>${esc(report.headline)}</h2>
+      <div class="vchips">${chips}</div>
+      <div class="meaning" style="margin-top:12px">${esc(c.verdict_meaning)} Weakest layer: <b>${esc(c.weakest_pillar)}</b> at ${c.weakest_score}/10.</div>
+      ${costLine}
+      <div class="vlegend"><b>Reading the badges:</b> painkiller or vitamin is whether this stops an active cost or adds insurance · the monthly figure is what doing nothing costs, from your own numbers · % ready is the average of the four pillar scores · the verdict follows your weakest pillar, not your average · fix size is the rough effort. Every one is unpacked below.</div>
+    </div>
+    <div class="blurred" style="margin-top:20px">${pillarBars(true)}</div>`;
+  track("gate_view");
+}
+async function unlockReport(){
+  const email=document.getElementById("gEmail").value.trim();
+  const first=document.getElementById("gName").value.trim();
+  const last=document.getElementById("gLast").value.trim();
+  const company=document.getElementById("gCompany").value.trim();
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ document.getElementById("gEmail").focus(); return; }
+  if(!first){ document.getElementById("gName").focus(); return; }
+  if(!last){ document.getElementById("gLast").focus(); return; }
+  if(!company){ document.getElementById("gCompany").focus(); return; }
+  track("gate_unlock");
+  window._leadEmail=email;
+  revealReport();
+  fetch("/api/lead",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({email,name:first,last_name:last,company,role:state.role,industry:state.industry,
+      headline:report.headline,verdict:report.computed.verdict,report_html:emailHTML()})})
+    .then(r=>r.json()).then(d=>{ window._emailed=d.emailed; refreshEmailBtn(); })
+    .catch(()=>{});
+}
+function revealReport(){
+  document.getElementById("gateBox").style.display="none";
+  document.getElementById("teaser").querySelectorAll(".blurred").forEach(x=>x.remove());
+  renderReport(); document.getElementById("fullReport").style.display="block";
+  track("report_view");
+}
+
+/* ------------------------------------------------ report rendering */
+function esc(s){ return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+const PILLAR_DEFS={resilience:"Can you lose a component and stay up: pooling, failover, statelessness.",
+  security:"Can you patch, and who is watching. Ransomware exposure lives here.",
+  scale:"What happens at 2x, and what it costs to run today.",
+  ops:"People, process, silos, recovery testing, and the 2am answer."};
+function pillarBars(compact){
+  return `<div class="card"><span class="eyebrow">Four pillar scorecard</span>
+  <p style="font-size:13px;color:var(--muted);margin-top:6px">Each pillar scored 0 to 10 from your answers. Your verdict follows the lowest bar, because an environment is only as resilient as its weakest layer. Overall readiness is simply the average of the four: <b>${report.computed.readiness_pct}%</b>.</p>
+  ${report.pillars.map(p=>`
+    <div class="pillar"><div class="ptop"><span>${esc(p.name)}</span><span class="mono">${p.score}/10</span></div>
+    <div class="pdef">${PILLAR_DEFS[p.key]||""}</div>
+    <div class="pbar"><i style="width:${p.score*10}%"></i></div>
+    ${compact?"":`<div class="preason">${esc(p.reason)}</div>`}</div>`).join("")}</div>`;
+}
+function scaleStrip(){
+  const c=report.computed;
+  const pos = c.weakest_score<=4 ? c.weakest_score/4*40 : c.weakest_score<=7 ? 40+(c.weakest_score-4)/3*30 : 70+(c.weakest_score-7)/3*30;
+  return `<div class="card"><span class="eyebrow">Where you sit</span>
+  <div class="scale" style="margin-top:34px;position:relative">
+    <div class="you" style="left:${Math.min(97,Math.max(3,pos))}%">YOU · ${c.weakest_score}/10</div>
+    <div class="scalebar"><span class="s-luck"></span><span class="s-exposed"></span><span class="s-hard"></span></div>
+    <div class="scalelabels"><div class="sl1"><b>Running on luck</b> · under 4 · ordinary failures become outages</div><div class="sl2"><b>Exposed in places</b> · 4 to 6.9 · known gaps, fixable in 90 days</div><div class="sl3"><b>Hardened</b> · 7+ · maintenance is a non event</div></div>
+  </div>
+  <div class="banddesc">${esc(c.rule)} ${c.next_band?`You are <b>${c.next_band.gap} points</b> on your weakest pillar from <b>${esc(c.next_band.name)}</b>.`:"You are in the top band; the roadmap below is about staying there and getting faster."} A 10 does not exist. The gap to 10 is the readiness gap the roadmap below closes.</div>
+  <div style="margin-top:14px;font-size:13px;color:var(--muted)">
+    <div style="padding:5px 0"><b style="color:var(--red)">Running on luck:</b> environments with at least one layer that turns an ordinary failure into an outage, usually a failover that has never fired or patching that stopped.</div>
+    <div style="padding:5px 0"><b style="color:var(--amber)">Exposed in places:</b> where most growing SaaS platforms land on a first pass: the foundations exist, with one or two known gaps between them and boring reliability.</div>
+    <div style="padding:5px 0"><b style="color:var(--green)">Hardened:</b> rare first time out: pooling proven, failover exercised, maintenance routine, restores tested.</div>
+  </div></div>`;
+}
+function costSection(){
+  const m=money(); if(!m) return `<div class="rsec"><h2>What doing nothing costs</h2><p class="note">You skipped the sizing figures, so this report shows no money. Run it again with your numbers, or bring them to the working session and we will do this part live.</p></div>`;
+  const s=state.sizing;
+  let cards="";
+  if(m.hasMoney){
+    if(m.outageYr>0) cards+=`<div class="k"><b>${fmt(m.outageYr)}</b><span>Estimated outage exposure per year: revenue per working hour × ${s.outHrs}h average outage × ${s.outYr} outages${s.sla?` + ${fmt(s.sla)} SLA exposure per incident`:""}</span></div>`;
+    if(m.ffMonth>0) cards+=`<div class="k"><b>${fmt(m.ffMonth)}</b><span>Firefighting cost per month: ${s.ffHrs} engineering hours × ${fmt(s.rate)}/hour, hours spent keeping the lights on instead of building</span></div>`;
+    cards+=`<div class="k"><b>${fmt(m.bleedMonth)}</b><span>Total estimated bleed per month, the number the roadmap below recovers against</span></div>`;
+  } else if(m.hasHours){
+    cards+=`<div class="k"><b>${Math.round(m.ffHrsWeek)} hrs</b><span>Engineering hours per week lost to firefighting. Add an hourly cost to see this in money.</span></div>`;
+  }
+  return `<div class="rsec"><span class="eyebrow">Section · The number</span><h2>What doing nothing costs, in your own figures</h2>
+  <div class="kv">${cards}</div>
+  ${m.revHr>0?`<div class="formula">HOW WE COMPUTED IT · revenue per working hour = ${fmt(s.revenue)} monthly revenue ÷ 160 working hours (40 hours × 4 weeks) = ${fmt(m.revHr)}/hour. Nothing here was invented; change the inputs and the outputs change.</div>`:""}
+  <p class="note">These are estimates from your own figures, not guarantees.</p></div>`;
+}
+function charts(){
+  const m=money(); if(!m||(!m.hasMoney&&!m.hasHours)) return "";
+  const pcts=[0].concat(report.roadmap.map(p=>p.recovery_pct/100));
+  const labels=["Today","Day 30","Day 60","Day 90"];
+  let out=`<div class="rsec"><span class="eyebrow">Section · The trajectory</span><h2>The 90 day decline curves</h2>`;
+  if(m.hasMoney) out+=chartSVG("Money lost per month",labels,pcts.map(p=>m.bleedMonth*(1-p)),v=>fmt(v),"#C24D3A","What this still costs you each month, by your own figures");
+  if(m.hasHours) out+=chartSVG("Engineering hours lost per week",labels,pcts.map(p=>m.ffHrsWeek*(1-p)),v=>Math.round(v)+"h","#E2963C","Team hours still going into firefighting each week");
+  out+=`<p class="note">Estimates, not guarantees: your bleed figure × the conservative cumulative recovery percentage of each phase.</p></div>`;
+  return out;
+}
+function chartSVG(title,labels,vals,fmtFn,color,caption){
+  const W=560,H=170,P=44,max=Math.max(...vals)||1;
+  const pts=vals.map((v,i)=>[P+i*( (W-P-16)/(vals.length-1) ), 24+(H-58)*(1-v/max)]);
+  const poly=pts.map(p=>p.join(",")).join(" ");
+  return `<div class="chartwrap"><h4>${title}</h4>
+  <svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${title} declining from ${fmtFn(vals[0])} to ${fmtFn(vals[vals.length-1])}">
+    <line x1="${P}" y1="${H-34}" x2="${W-10}" y2="${H-34}" stroke="#D8E2E8"/>
+    <polyline points="${poly}" fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round"/>
+    ${pts.map((p,i)=>`<circle cx="${p[0]}" cy="${p[1]}" r="4" fill="${color}"/>
+      <text x="${p[0]}" y="${p[1]-10}" text-anchor="middle" font-size="11" font-family="IBM Plex Mono" fill="#1E2D36">${fmtFn(vals[i])}</text>
+      <text x="${p[0]}" y="${H-16}" text-anchor="middle" font-size="10.5" font-family="IBM Plex Mono" fill="#61707A">${labels[i]}</text>`).join("")}
+  </svg>${caption?`<div style="font-size:12px;color:var(--muted);margin-top:4px">${caption}</div>`:""}</div>`;
+}
+const WIDER=[
+  {b:"$5,600 / minute",s:"Average cost of IT downtime across industries",src:"Gartner"},
+  {b:"Over half",s:"of significant outages cost more than $100,000, and the share keeps rising",src:"Uptime Institute, Annual Outage Analysis"},
+  {b:"$4.88M",s:"Average total cost of a data breach in 2024",src:"IBM, Cost of a Data Breach Report 2024"},
+];
+const PH_SERVICES=[
+  {name:"SaaS infrastructure engineering",what:"Engineering the environment around how your application actually behaves: database performance, I/O patterns, high availability."},
+  {name:"Migration and DevOps repair",what:"Moving and re-architecting workloads, fixing the deployment design in the same motion, incl. cloud repatriation and renewal escapes."},
+  {name:"Managed hosting and high availability environments",what:"Pooled, redundant environments Protected Harbor runs and answers for, where maintenance is a non event."},
+  {name:"Security hardening",what:"One owner for the whole surface: patching, access, monitoring, and the process holes behind the tooling."},
+  {name:"Custom programming",what:"An in house programming group for the fixes that need code, not just configuration."},
+];
+function riskBadge(level){
+  const l=(level||"").toLowerCase();
+  const bg=l==="high"?"var(--red)":l==="medium"?"var(--amber)":"var(--green)";
+  return level?`<span class="vbadge" style="background:${bg};font-size:11px;padding:5px 12px;vertical-align:middle">${esc(level)} risk</span>`:"";
+}
+function compChips(comp){
+  if(!comp) return "";
+  const pairs=[["Impact",comp.impact],["Feasibility",comp.feasibility],["Time to value",comp.time_to_value],["Risk reduction",comp.risk_reduction]];
+  return `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">${pairs.filter(p=>p[1]!==undefined&&p[1]!==null).map(p=>`<span class="effort" style="text-transform:none;letter-spacing:.3px">${p[0]} ${p[1]}</span>`).join("")}</div>`;
+}
+function partHead(n,title,desc){
+  return `<div class="parthead"><div class="partnum">${n}</div><div><h2>${title}</h2><p>${desc}</p></div></div>`;
+}
+function bridge(t){ return `<p class="bridge">${t}</p>`; }
+function renderReport(){
+  const c=report.computed;
+  const sa=report.shadow_ai||null;
+  const R=document.getElementById("fullReport");
+  R.innerHTML=`
+  <div class="card" style="margin-top:22px"><span class="eyebrow">How this report fits together</span>
+    <div class="mapstrip" style="margin-top:8px">
+      <div><b>The verdict.</b> Your infrastructure scored across four pillars, and where you sit on the scale.</div>
+      <div><b>The cost.</b> What the gaps stay costing you every month, in your own figures.</div>
+      <div><b>The exposure.</b> The specific risks your answers point at, including the one you have not named.</div>
+      <div><b>The map.</b> Every challenge matched to the Protected Harbor service accountable for fixing it.</div>
+      <div><b>The plan.</b> One initiative first, the maths behind choosing it, and 90 days sequenced.</div>
+      <div><b>The receipts.</b> Where every answer you gave went, so you can check our working.</div>
+    </div>
+  </div>
+
+  ${partHead(1,"The verdict","Where your infrastructure stands today, scored 0 to 10 from your answers across four pillars. The verdict follows your weakest pillar, because an environment is only as resilient as its weakest layer.")}
+  ${scaleStrip()}
+  ${pillarBars(false)}
+  ${report.first_move?`<div class="card" style="border-left:4px solid var(--orange);border-radius:0 18px 18px 0"><b>${esc(c.verdict)}, so before anything else:</b> ${esc(report.first_move)}</div>`:""}
+  ${bridge("That is where you stand. Next: what standing still costs.")}
+
+  ${partHead(2,"The cost","What the gaps in Part 1 cost while they stay open. Every figure here is computed from the numbers you gave, never invented.")}
+  <div class="rsec"><span class="eyebrow">Painkiller or vitamin</span>
+    <h2>Is this bleeding now, or insurance for later?</h2>
+    <div class="card"><b>${esc(report.painkiller.label)}.</b> ${esc(report.painkiller.reason)}
+    <p class="note">A painkiller closes a wound that is bleeding now. A vitamin is insurance for later. We tell you which this is so the urgency is honest, in either direction.</p></div>
+  </div>
+  ${costSection()}
+  ${report.return_source?`<div class="rsec"><span class="eyebrow">Where the return comes from</span>
+    <h2>What you get back when it is fixed</h2>
+    <div class="card">${esc(report.return_source)}</div>
+  </div>`:""}
+  ${bridge("A cost keeps growing when risk compounds. Part 3 names the risks doing the compounding.")}
+
+  ${partHead(3,"The exposure","The specific risks your answers point at. Each one traces back to a pillar score in Part 1, and each one has a mapped fix in Part 4.")}
+  <div class="rsec"><span class="eyebrow">The blind spot</span>
+    <h2>The one thing you're not seeing</h2>
+    <p style="font-size:13.5px;color:var(--muted)">Every report names one risk the reader did not raise themselves. This is yours.</p>
+    <div class="card" style="border-left:4px solid var(--amber)">${esc(report.blind_spot)}</div>
+  </div>
+  <div class="rsec"><span class="eyebrow">Ransomware and maintenance debt</span>
+    <h2>What can't be patched is what gets attacked</h2>
+    <p style="font-size:13.5px;color:var(--muted)">This is your Security and maintenance debt pillar, unpacked: your patch reality and what that class of gap has historically meant.</p>
+    <div class="card">${esc(report.ransomware_exposure)}</div>
+  </div>
+  <div class="rsec"><span class="eyebrow">The Frankenstein check</span>
+    <h2>Connected systems, or bolted on limbs? ${riskBadge(report.frankenstein_risk)}</h2>
+    <p style="font-size:13.5px;color:var(--muted)">Our name for what happens when tools and responsibilities get bolted on one at a time until nothing talks to anything. This checks whether your environment works as one design or as stitched together parts.</p>
+    <div class="card">${esc(report.frankenstein)}</div>
+  </div>
+  ${sa&&sa.text?`<div class="rsec"><span class="eyebrow">Shadow AI exposure</span>
+    <h2>The AI use nobody signed off ${riskBadge(sa.level)}</h2>
+    <p style="font-size:13.5px;color:var(--muted)">Shadow AI is staff using AI tools unofficially, which means company or client data in consumer tools with no audit trail and no policy.</p>
+    <div class="card">${esc(sa.text)}</div>
+  </div>`:""}
+  <div class="rsec"><span class="eyebrow">AI readiness</span>
+    <h2>Can your infrastructure carry your AI ambitions?</h2>
+    <p style="font-size:13.5px;color:var(--muted)">Why this sits in an infrastructure report: you cannot have AI without infrastructure. AI amplifies whatever foundation it sits on, so the pillar scores in Part 1 are also your AI readiness scores. This section says what that means for the AI the business is asking for.</p>
+    <div class="card">${esc(report.ai_readiness)}</div>
+  </div>
+  ${bridge("Every risk above is a challenge with a mapped fix. Part 4 draws the map.")}
+
+  ${partHead(4,"The map: every challenge to its fix","Each challenge you named, or the scorecard flagged, matched to the Protected Harbor service accountable for it. Today these are split across a storage person, a Windows person and a cloud bill nobody owns. This is what one accountable partner for performance, security and costs looks like.")}
+  <div class="rsec">
+    <div class="card" style="padding:14px 18px">
+      <div class="tagline" style="color:var(--muted);margin-bottom:6px">The five services doing the work</div>
+      ${PH_SERVICES.map(s=>`<div style="padding:7px 0;border-bottom:1px solid var(--line);font-size:13.5px"><b style="color:var(--orange-d)">${s.name}.</b> <span style="color:var(--muted)">${s.what}</span></div>`).join("")}
+    </div>
+    <div class="card" style="padding:10px 18px;overflow-x:auto"><table class="svcmap"><tr><th>Your challenge, in your words</th><th>The Protected Harbor service</th><th>What that looks like in practice</th></tr>
+    ${report.pain_service_map.map(p=>`<tr><td>${esc(p.pain)}${p.pillar?`<br><span class="ptag2">Flagged in: ${esc(p.pillar)}</span>`:""}</td><td>${esc(p.service)}</td><td>${esc(p.how)}</td></tr>`).join("")}</table>
+    <p class="note">The pillar tag under each challenge shows where it scored in Part 1, so you can trace challenge, score, and fix in one line. Every roadmap phase in Part 5 names which of these services does the work, so nothing in the plan is ownerless.</p></div>
+  </div>
+  ${bridge("A map is not a plan. Part 5 sequences it: one initiative first, then the rest in order.")}
+
+  ${partHead(5,"The plan","One initiative first, the maths behind choosing it, and your first 90 days. The first fix takes the biggest bite, then diminishing returns to done.")}
+  <div class="rsec"><span class="eyebrow">The focus</span>
+    <h2>One initiative, not four</h2>
+    <p style="font-size:13.5px;color:var(--muted)">Parts 1 to 4 point at more than one problem. Fixing them all at once is how programmes stall, so everything narrows to a single first initiative, and the ranking underneath shows the maths behind the choice.</p>
+    <div class="card" style="border-left:4px solid var(--orange)"><b>${esc(report.one_initiative.title)}</b><p style="margin-top:6px">${esc(report.one_initiative.why)}</p></div>
+  </div>
+  <div class="rsec"><span class="eyebrow">The ranking, and the maths</span>
+    <h2>Why that initiative, and not the others</h2>
+    <p style="font-size:13.5px;color:var(--muted)">Every candidate fix is scored on Protected Harbor's priority model: Impact 35% (size of the return), Feasibility 25% (buildable with your environment today), Time to value 20% (how fast it pays), Risk reduction 20% (how much exposure it closes). Bands: 8+ Exceptional leverage · 6.5 to 8 Strong candidate · 5 to 6.5 Viable with preparation · under 5 Not yet. A 10 does not exist.</p>
+    <div class="card">${report.ranking.map((r,i)=>`<div class="rankrow"><div><div class="rankscore">#${i+1}</div><div class="rankscore" style="font-size:17px">${r.score}/10</div><div class="rband">${esc(r.band||"")}</div></div><div><b>${esc(r.title)}</b>${compChips(r.components)}<div style="font-size:13.5px;color:var(--muted);margin-top:5px">${esc(r.reason)}</div></div></div>`).join("")}
+    ${report.why_winner?`<p style="font-size:14px;margin-top:14px"><b>Why #1 wins:</b> ${esc(report.why_winner)}</p>`:""}
+    <p class="note">The ranking is relative: the winner is your best first move, and the distance from its score to 10 is the readiness gap the roadmap closes. Sequence the others after it, not alongside it.</p></div>
+  </div>
+  ${report.within_reach?`<div class="rsec"><span class="eyebrow">Why now</span>
+    <h2>Why this is within reach</h2>
+    <div class="card">${esc(report.within_reach)}</div>
+  </div>`:""}
+  <div class="rsec"><span class="eyebrow">Your first 90 days</span>
+    <h2>The roadmap: peel the onion</h2>
+    <div class="goalquote"><span class="eyebrow">Your 12 month goal, in your words</span>
+      <blockquote>&ldquo;${esc(state.goal)}&rdquo;</blockquote>
+      <div style="font-size:13.5px;color:var(--muted)">Every phase below is filtered through this. If a step does not serve it, it did not make the plan.</div>
+      ${report.goal_tieback?`<p style="font-size:14px;margin-top:10px">${esc(report.goal_tieback)}</p>`:""}
+    </div>
+    ${report.current_state?`<div class="card" style="border-left:4px solid var(--muted);border-radius:0 18px 18px 0"><div class="tagline" style="color:var(--muted)">Today · current state</div><p style="margin-top:6px;font-size:14.5px">${esc(report.current_state)}</p></div>`:""}
+    ${report.roadmap.map(p=>{ const m=money();
+      const rec = m&&m.hasMoney ? `≈ ${fmt(m.bleedMonth*p.recovery_pct/100)}/month recovered (est., from your own figures)` : m&&m.hasHours ? `≈ ${Math.round(m.ffHrsWeek*p.recovery_pct/100)} hrs/week recovered (est.)` : "";
+      return `<div class="phase"><div class="ptag"><span class="eyebrow">Phase ${p.phase} · ${esc(p.days)}</span><span class="effort">${esc(p.effort)} effort</span></div>
+      <h3>${esc(p.title)}</h3><p style="font-size:14.5px">${esc(p.what)}</p>
+      <div class="svc">Done by: ${esc(p.service)}</div>
+      ${rec?`<div class="recov">${rec} · cumulative recovery ${p.recovery_pct}%</div>`:""}</div>`;}).join("")}
+    ${report.future_state?`<div class="card" style="border-left:4px solid var(--green);border-radius:0 18px 18px 0"><div class="tagline" style="color:var(--green)">Day 90 · future state</div><p style="margin-top:6px;font-size:14.5px">${esc(report.future_state)}</p></div>`:""}
+  </div>
+  ${charts()}
+  <div class="rsec"><span class="eyebrow">Start small</span>
+    <h2>${esc(report.pilot.title)}</h2>
+    <p style="font-size:13.5px;color:var(--muted)">The smallest version of Phase 1 that proves the whole approach: small enough to say yes to this week, real enough to arm you internally.</p>
+    <div class="pilot">${esc(report.pilot.what)}<p class="note" style="margin-top:10px">Start small, stack wins. The first win proves the value, builds the trust, and gives you the internal story.</p></div>
+  </div>
+  ${bridge("That is the plan. Part 6 shows our working, so you can check every claim against what you told us.")}
+
+  ${partHead(6,"The receipts","Every answer you gave changed something in this report. Here is the trace, plus the published research behind the stakes.")}
+  <div class="rsec"><span class="eyebrow">Where each answer went</span>
+    <h2>Trace every finding to your words</h2>
+    <div class="card">${report.trace.map(t=>`<div class="trace"><q>${esc(t.answer_quote)}</q><div>→ ${esc(t.what_it_changed)}</div></div>`).join("")}
+    <p class="note">Nothing you told us was decorative.</p></div>
+  </div>
+  <div class="rsec"><span class="eyebrow">The wider picture</span>
+    <h2>You're not imagining the stakes</h2>
+    <div class="wider">${WIDER.map(w=>`<div class="wcard"><b>${w.b}</b><span>${w.s}</span><small>SOURCE · ${w.src}</small></div>`).join("")}</div>
+    <p class="note">Published industry research, not generated numbers.</p>
+  </div>
+
+  <div class="ctabox">
+    <span class="eyebrow" style="color:var(--orange-l)">The next step</span>
+    <h2>A free working session, not a sales call</h2>
+    <p>Current state on one side of the whiteboard, future state on the other${(function(){const m=money();return m&&m.hasMoney?", and the "+fmt(m.bleedMonth)+"/month between them":""})()}. Bring your business leaders, not just IT: this is a business conversation with engineering underneath.</p>
+    <a class="btn" href="${CALENDLY}" target="_blank" rel="noopener" onclick="track('cta_click')">Book the working session</a>
+    <div class="actions">
+      <button class="btn ghost sm" id="emailBtn" onclick="resendEmail()">Email me this report</button>
+      <button class="btn ghost sm" onclick="onePager()">Download one pager</button>
+      <button class="btn ghost sm" onclick="shareWA()">Share summary on WhatsApp</button>
+      <button class="btn ghost sm" onclick="window.print()">Print / save PDF</button>
+      <button class="btn ghost sm" onclick="startAgain()">Start again</button>
+    </div>
+    <div class="tiny" id="sentLine" style="margin-top:12px"></div>
+    <div class="tiny" style="margin-top:8px">If email sending is unavailable, "Email me this report" opens your email app with the report addressed to Protected Harbor, so the conversation picks up with your context already in hand.</div>
+  </div>
+
+  <div class="rsec"><span class="eyebrow">Appendix</span>
+    <h2>How to read this report</h2>
+    <div class="gloss"><dl>
+      <dt>The six parts</dt><dd>Part 1 scores you, Part 2 prices the gaps, Part 3 names the risks, Part 4 maps every challenge to its fix, Part 5 sequences the fixes, and Part 6 shows the working.</dd>
+      <dt>The verdict (Hardened / Exposed in places / Running on luck)</dt><dd>Computed from your weakest pillar, never averaged up: weakest pillar 7+ is Hardened, 4 to 6.9 is Exposed in places, under 4 is Running on luck.</dd>
+      <dt>The four pillars</dt><dd>Resilience and availability; Security and maintenance debt; Scalability, performance and cost; Operational readiness. Each scored 0 to 10 from your answers. Readiness % is simply their average.</dd>
+      <dt>Painkiller vs vitamin</dt><dd>Whether infrastructure is a wound bleeding now or insurance for later. It sets the honest urgency.</dd>
+      <dt>The blind spot</dt><dd>The one risk your answers point at that you did not name yourself.</dd>
+      <dt>The Frankenstein check</dt><dd>Whether systems work as one design or as parts bolted on over time, including unofficial AI use.</dd>
+      <dt>AI readiness</dt><dd>Whether your data and infrastructure can carry the AI the business is asking for. It reuses the Part 1 pillars, because AI amplifies whatever foundation it sits on.</dd>
+      <dt>Cost of doing nothing</dt><dd>Computed only from the figures the reader's own team provided: revenue per working hour (monthly revenue ÷ 160 hours, being 40 hours × 4 weeks) × outage hours × outages per year, plus stated firefighting hours × their stated hourly cost. Estimates, not guarantees.</dd>
+      <dt>Ranking scores</dt><dd>Weighted 35 Impact / 25 Feasibility / 20 Time to value / 20 Risk reduction, out of 10. A 10 does not exist; the gap to 10 is the readiness gap the roadmap closes.</dd>
+      <dt>Recovery percentages</dt><dd>Conservative, cumulative estimates of how much of the monthly bleed each roadmap phase recovers, applied to the reader's own figure.</dd>
+    </dl></div>
+    <div class="footer-honest">This report was generated from the answers provided, scored against Protected Harbor's resilience methodology. It is honest by design: if it says you are in good shape, you are. Forward it freely; the glossary above travels with it.</div>
+  </div>`;
+  refreshEmailBtn();
+}
+function refreshEmailBtn(){
+  const b=document.getElementById("emailBtn"); if(!b) return;
+  if(window._emailed){ b.innerHTML="Sent ✓ to your inbox"; b.classList.add("sentok"); }
+  const s=document.getElementById("sentLine");
+  if(s&&window._leadEmail) s.textContent="A copy of this report is on its way to "+window._leadEmail+".";
+}
+function startAgain(){ track("start_again"); clearState(); location.href=location.pathname+location.search; }
+async function resendEmail(){
+  track("email_resend");
+  const email=window._leadEmail||document.getElementById("gEmail").value.trim();
+  if(!email){ return; }
+  try{
+    const r=await fetch("/api/lead",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({email,resend:true,role:state.role,industry:state.industry,
+        headline:report.headline,verdict:report.computed.verdict,report_html:emailHTML()})});
+    const d=await r.json();
+    if(d.emailed){ window._emailed=true; refreshEmailBtn(); return; }
+  }catch(e){}
+  location.href="mailto:"+CONTACT+"?subject="+encodeURIComponent("My Infrastructure Resilience Report")+"&body="+encodeURIComponent(summaryText()+"\n\nMy email: "+email);
+}
+function summaryText(){
+  const c=report.computed,m=money();
+  return `My SaaS Infrastructure Resilience verdict: ${c.verdict} (weakest layer: ${c.weakest_pillar}, ${c.weakest_score}/10, overall readiness ${c.readiness_pct}%). `+
+    (m&&m.hasMoney?`Estimated cost of doing nothing: ${fmt(m.bleedMonth)}/month from our own figures. `:"")+
+    `${report.headline} Take the audit: ${location.origin}`;
+}
+function shareWA(){ track("share_wa"); window.open("https://wa.me/?text="+encodeURIComponent(summaryText()),"_blank"); }
+function onePager(){
+  track("one_pager");
+  const c=report.computed,m=money();
+  const bar=s=>`<div style="height:8px;background:#F2EAE0;border-radius:99px;margin:3px 0 10px"><div style="height:8px;border-radius:99px;background:#DD7A36;width:${s*10}%"></div></div>`;
+  const w=window.open("","_blank");
+  w.document.write(`<!DOCTYPE html><html><head><title>Infrastructure Resilience One Pager</title>
+  <style>body{font-family:Arial,Helvetica,sans-serif;color:#1E2D36;max-width:720px;margin:24px auto;padding:0 18px;font-size:13px;line-height:1.5}
+  h1{font-size:20px;margin:2px 0}h2{font-size:14px;margin:16px 0 4px;text-transform:uppercase;letter-spacing:1px;color:#C2621F}
+  .chip{display:inline-block;border-radius:99px;padding:4px 12px;background:#22333D;color:#fff;font-size:11px;font-weight:bold;margin:2px 4px 2px 0}
+  .v{background:${c.verdict_key==="hardened"?"#3E9C6E":c.verdict_key==="luck"?"#C4472F":"#DD7A36"}}
+  .foot{font-size:10.5px;color:#61707A;border-top:1px solid #EFE2D4;margin-top:16px;padding-top:8px}</style></head><body>
+  <div style="font-size:11px;letter-spacing:2px;color:#C2621F;font-weight:bold">PROTECTED HARBOR · INFRASTRUCTURE RESILIENCE AUDIT · ONE PAGER</div>
+  <h1>${esc(report.headline)}</h1>
+  <div><span class="chip">${esc(report.painkiller.label)}</span>${m&&m.hasMoney?`<span class="chip">~${fmt(m.bleedMonth)}/mo cost of doing nothing</span>`:""}<span class="chip">${c.readiness_pct}% ready</span><span class="chip v">${c.verdict}</span><span class="chip">${fixSize()}</span></div>
+  <h2>Four pillars (verdict follows the weakest: ${esc(c.weakest_pillar)}, ${c.weakest_score}/10)</h2>
+  ${report.pillars.map(p=>`<div><b>${esc(p.name)} · ${p.score}/10</b>${bar(p.score)}</div>`).join("")}
+  <h2>The blind spot</h2><div>${esc(report.blind_spot)}</div>
+  <h2>One initiative, not four</h2><div><b>${esc(report.one_initiative.title)}.</b> ${esc(report.one_initiative.why)}</div>
+  <h2>90 day plan</h2>
+  ${report.roadmap.map(p=>`<div style="margin-bottom:6px"><b>${esc(p.days)}: ${esc(p.title)}</b> (${esc(p.effort)}, ${esc(p.service)})${m&&m.hasMoney?` · ≈ ${fmt(m.bleedMonth*p.recovery_pct/100)}/mo recovered (est.)`:""}</div>`).join("")}
+  <h2>12 month goal, in their words</h2><div>&ldquo;${esc(state.goal)}&rdquo;</div>
+  <div class="foot"><b>How to read this:</b> verdict follows the weakest of four pillars (7+ Hardened · 4 to 6.9 Exposed in places · under 4 Running on luck). Readiness % is the pillar average. All money figures are computed from the figures provided by the reader's own team (monthly revenue ÷ 160 working hours × outage exposure, plus stated firefighting hours × their stated rate) — estimates, not guarantees. Next step: a free working session, current state vs future state. ${CALENDLY}</div>
+  <script>window.print()<\/script></body></html>`);
+  w.document.close();
+}
+function emailHTML(){
+  const c=report.computed,m=money();
+  return `<p><b>Verdict: ${esc(c.verdict)}</b> — ${esc(c.verdict_meaning)}</p>
+  <p>${esc(report.headline)}</p>
+  <p><b>Weakest layer:</b> ${esc(c.weakest_pillar)} at ${c.weakest_score}/10 · Overall readiness ${c.readiness_pct}% (average of the four pillars)</p>
+  <ul>${report.pillars.map(p=>`<li><b>${esc(p.name)}: ${p.score}/10.</b> ${esc(p.reason)}</li>`).join("")}</ul>
+  ${m&&m.hasMoney?`<p><b>Estimated cost of doing nothing:</b> ${fmt(m.bleedMonth)}/month, computed from your own figures (estimates, not guarantees).</p>`:""}
+  <p><b>The blind spot:</b> ${esc(report.blind_spot)}</p>
+  <p><b>One initiative, not four:</b> ${esc(report.one_initiative.title)} — ${esc(report.one_initiative.why)}</p>
+  <p><b>90 day roadmap:</b></p>
+  <ol>${report.roadmap.map(p=>`<li><b>${esc(p.days)}: ${esc(p.title)}</b> (${esc(p.effort)} effort, done by ${esc(p.service)}). ${esc(p.what)}</li>`).join("")}</ol>
+  <p>${esc(report.goal_tieback)}</p>
+  <p style="font-size:12px;color:#5a6b76"><b>How to read this:</b> the verdict follows the weakest pillar (7+ Hardened, 4 to 6.9 Exposed in places, under 4 Running on luck). All money figures are computed from the figures you provided, never invented. Forward freely.</p>`;
+}
+
+/* ------------------------------------------------ voice input */
+function wireMic(btnId, taId){
+  const btn=document.getElementById(btnId); if(!btn) return;
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){ btn.style.display="none"; return; }
+  let rec=null;
+  btn.onclick=()=>{
+    if(rec){ rec.stop(); return; }
+    rec=new SR(); rec.lang="en-US"; rec.interimResults=false; rec.continuous=true;
+    btn.classList.add("rec");
+    rec.onresult=e=>{ const ta=document.getElementById(taId);
+      for(let i=e.resultIndex;i<e.results.length;i++) if(e.results[i].isFinal) ta.value=(ta.value+" "+e.results[i][0].transcript).trim(); };
+    rec.onend=()=>{ btn.classList.remove("rec"); rec=null; };
+    rec.start();
+  };
+}
+wireMic("micBtn","qAnswer"); wireMic("micBtn2","fuAnswer"); wireMic("micBtn3","goalAnswer");
+checkResume();
+track("pageview",{consultant:CONSULTANT});
+</script>
+</body>
+</html>
