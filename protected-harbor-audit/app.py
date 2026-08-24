@@ -152,14 +152,28 @@ HARD RULES:
 - Never invent money figures. Money math is computed elsewhere from the prospect's own numbers. You may reference "your own figures" but never state amounts.
 - Be honest even if it costs the sale. If they are genuinely in good shape, say so plainly.
 - Ground everything in what they actually told you. Quote their words back where useful.
-- No hyphens or em dashes in output text. Use commas or full stops."""
+- No hyphens or em dashes in output text. Use commas or full stops.
+
+BREVITY, THE HARDEST RULE (an executive reads this in four minutes or not at all):
+- Say it once. If a point appears in one section it does not reappear in another, in any rewording.
+- Every sentence must earn its place. Cut throat clearing, restatement of the question, and any phrase that could be deleted without losing meaning.
+- Prefer the shorter construction every time. Same meaning, half the words.
+- Never pad to fill a field. A short honest line beats a long one.
+- WORD CAPS ARE HARD LIMITS, not targets. Exceeding one is a failure:
+  headline max 14 words · summary max 55 words · first_move max 45 words
+  each pillar note max 22 words · each pillar gap max 20 words · each pillar consequence max 22 words · blind_spot max 60 words
+- EXCEPTION to the caps: the exposure narrative fields (blind_spot, ransomware_exposure, frankenstein, ai_readiness) carry the reasoning, so they may run to 90 words each. Explain WHY the finding follows from their answers, not just what it is. Everywhere else the caps hold.
+  each risk/check explanation max 30 words · each pain fix line max 28 words
+  why_winner max 35 words · each phase description max 35 words
+  within_reach max 40 words · return_source max 40 words
+- Write for someone skimming on a phone between meetings."""
 
 ANALYZE_SYSTEM = HOUSE_RULES + """
 
 You produce a SaaS infrastructure resilience report as STRICT JSON only. No preamble, no markdown fences, no text outside the JSON object.
 
 Scoring: score each pillar 0 to 10 from their answers. Be conservative and honest. An unanswered or "not sure" answer lowers confidence and the score, and the report should say so honestly.
-The verdict is computed by the system from the weakest pillar (7+ Hardened, 4 to 6.9 Exposed in places, under 4 Running on luck). Do not argue with that rule; write consistently with it.
+The verdict is computed by the system from the weakest pillar (7+ Resilient, 4 to 6.9 Partially Resilient, under 4 Critical Exposure). Do not argue with that rule; write consistently with it.
 
 Blind spot patterns to check their answers against (pick the ONE most true for them, never generic):
 - a failover that has never actually been exercised is a hope, not a plan
@@ -174,10 +188,10 @@ Return EXACTLY this JSON shape:
 {
  "headline": "one sentence, specific to them, their biggest truth",
  "pillars": [
-   {"key":"resilience","name":"Resilience and availability","score":0,"reason":"plain English, cites their answers"},
-   {"key":"security","name":"Security and maintenance debt","score":0,"reason":"..."},
-   {"key":"scale","name":"Scalability, performance and cost","score":0,"reason":"..."},
-   {"key":"ops","name":"Operational readiness","score":0,"reason":"..."}
+   {"key":"resilience","name":"Resilience and availability","score":0,"reason":"plain English, cites their answers","gap":"the specific gap this score reveals, max 20 words, concrete not abstract","consequence":"what that gap leads to in practice, max 22 words, an operational outcome not a feeling","source_questions":["ids of the questions that drove this score"]},
+   {"key":"security","name":"Security and maintenance debt","score":0,"reason":"...","gap":"...","consequence":"...","source_questions":[]},
+   {"key":"scale","name":"Scalability, performance and cost","score":0,"reason":"...","gap":"...","consequence":"...","source_questions":[]},
+   {"key":"ops","name":"Operational readiness","score":0,"reason":"...","gap":"...","consequence":"...","source_questions":[]}
  ],
  "painkiller":{"label":"Painkiller" or "Vitamin","reason":"is infrastructure a bleeding wound for them right now or an insurance policy, and why"},
  "first_move":"one sentence: given the verdict and weakest pillar, the single thing to do before anything else, specific to their answers",
@@ -233,12 +247,12 @@ Given a prospect's answer, write ONE short follow up question that digs into the
 # ---------------------------------------------------------------- verdict
 
 BANDS = [
-    {"key": "luck", "name": "Running on luck", "min": 0, "max": 3.99,
-     "meaning": "The next incident sets your timeline, not you. Specific gaps mean an ordinary failure becomes an outage."},
-    {"key": "exposed", "name": "Exposed in places", "min": 4, "max": 6.99,
-     "meaning": "The foundations exist but specific, known gaps remain. Fixable inside 90 days."},
-    {"key": "hardened", "name": "Hardened", "min": 7, "max": 10,
-     "meaning": "You can take a server down. The remaining work is optimisation, not rescue."},
+    {"key": "luck", "name": "Critical Exposure", "min": 0, "max": 3.99,
+     "meaning": "At least one layer will turn an ordinary failure into a business affecting outage. The next incident sets your timeline, not you."},
+    {"key": "exposed", "name": "Partially Resilient", "min": 4, "max": 6.99,
+     "meaning": "The foundations are sound, but named gaps remain in specific layers. Addressable inside 90 days."},
+    {"key": "hardened", "name": "Resilient", "min": 7, "max": 10,
+     "meaning": "You could lose a system tomorrow and recover inside your own tolerance. Remaining work is optimisation, not remediation."},
 ]
 
 
@@ -262,7 +276,7 @@ def compute_verdict(pillars):
         "readiness_pct": round(sum(scores) / (10 * len(scores)) * 100) if scores else 0,
         "next_band": nxt,
         "bands": BANDS,
-        "rule": "Weakest pillar 7 or above: Hardened. 4 to 6.9: Exposed in places. Under 4: Running on luck. Your verdict follows your lowest pillar, because an environment is only as resilient as its weakest layer.",
+        "rule": "Weakest pillar 7 or above: Resilient. 4 to 6.9: Partially Resilient. Under 4: Critical Exposure. Your verdict follows your lowest pillar, because an environment is only as resilient as its weakest layer.",
     }
 
 
@@ -345,7 +359,7 @@ def api_analyze():
         "unsure_flags": d.get("unsure", []),
     }
     try:
-        out = parse_json(call_ai(ANALYZE_SYSTEM, json.dumps(payload), max_tokens=7000, tag="analyze"))
+        out = parse_json(call_ai(ANALYZE_SYSTEM, json.dumps(payload), max_tokens=4500, tag="analyze"))
         pillars = out.get("pillars") or []
         if len(pillars) != 4:
             raise RuntimeError("expected 4 pillars")
@@ -404,6 +418,7 @@ def api_lead():
         "role": d.get("role"), "industry": d.get("industry"),
         "headline": d.get("headline"), "verdict": d.get("verdict"),
         "resend": bool(d.get("resend")),
+        "delivery": d.get("delivery") or "instant",
     }
     if not lead["resend"]:
         _append(LEADS_PATH, lead)
@@ -425,11 +440,17 @@ def api_lead():
             </div>
           </div>
         </div>"""
-        emailed, _ = send_resend(email, "Your Infrastructure Resilience Report | Protected Harbor", html)
+        # Split test: when the report is held for post podcast delivery, skip the
+        # prospect send. The internal copy below still goes out so the host walks
+        # into the recording already holding the findings.
+        send_to_prospect = d.get("send_to_prospect", True)
+        if send_to_prospect:
+            emailed, _ = send_resend(email, "Your Infrastructure Resilience Report | Protected Harbor", html)
         if not lead["resend"] and NOTIFY_EMAIL:
             send_resend(
                 NOTIFY_EMAIL,
-                f"New resilience audit lead: {lead['company'] or email} ({lead['verdict']})",
+                f"New resilience audit lead: {lead['company'] or email} ({lead['verdict']})"
+                + (" | REPORT HELD for post podcast delivery" if not send_to_prospect else ""),
                 f"<p><b>{lead['name']} {lead['last_name']}</b> | {lead['company']} | {lead['role']} | {lead['industry']}<br>"
                 f"{email}<br>Verdict: <b>{lead['verdict']}</b><br>{lead['headline']}</p><hr>{report_html}",
             )
@@ -452,7 +473,7 @@ def api_leads_csv():
     if not _admin_ok():
         return jsonify({"error": "key"}), 403
     rows = _load(LEADS_PATH)
-    cols = ["ts", "email", "name", "last_name", "company", "role", "industry", "headline", "verdict"]
+    cols = ["ts", "email", "name", "last_name", "company", "role", "industry", "headline", "verdict", "delivery"]
     out = [",".join(cols)]
     for r in rows:
         out.append(",".join('"' + str(r.get(c, "")).replace('"', '""') + '"' for c in cols))

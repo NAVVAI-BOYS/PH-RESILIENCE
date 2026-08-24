@@ -41,10 +41,109 @@ header{background:#fff;padding:14px 0;position:sticky;top:0;z-index:20;border-bo
 @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.screen.on{animation:none}}
 /* ---------- hero ---------- */
-.hero{padding:56px 0 30px}
-.hero h1{font-size:clamp(36px,6.4vw,58px);font-weight:800;line-height:1.08;margin:16px 0 20px;color:var(--ink)}
+/* Options first on every question, own words always available underneath. */
+/* Sizing sliders: drag, type, or mark unknown. */
+.chains{display:flex;flex-direction:column;gap:14px;margin-top:6px}
+.chain{border:1px solid var(--line,#E7DCCE);border-radius:16px;background:#fff;overflow:hidden}
+.chainhead{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--cream,#FBF6F0);border-bottom:1px solid var(--line,#E7DCCE);flex-wrap:wrap}
+.chainhead b{font-size:15px}
+.cnum{width:23px;height:23px;border-radius:50%;background:var(--orange);color:#fff;font-size:12.5px;font-weight:700;display:grid;place-items:center}
+.sev{margin-left:auto;font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;padding:3px 9px;border-radius:999px}
+.sev.hi{background:#F7DAD3;color:#A6382A}.sev.md{background:#FAEDE1;color:#C2621F}
+.chainflow{display:grid;grid-template-columns:1fr 18px 1fr 18px 1fr;align-items:stretch;gap:0;padding:14px 16px}
+.chainflow .step{padding:10px 12px;background:var(--cream,#FBF6F0);border-radius:12px;display:flex;flex-direction:column;gap:4px}
+.chainflow .step b{font-size:10.5px;letter-spacing:1.1px;text-transform:uppercase;color:var(--orange-d,#C2621F)}
+.chainflow .step span{font-size:13px;line-height:1.45;color:var(--ink)}
+.chainflow .step small{font-size:11.5px;color:var(--muted);line-height:1.4}
+.chainflow .step.gap{background:#FDF3EC;box-shadow:inset 0 0 0 1px #F2D9C4}
+.why2{margin-top:12px;padding-top:12px;border-top:1px dashed var(--line,#E7DCCE)}
+.why2 b{display:block;font-size:10.5px;letter-spacing:1.1px;text-transform:uppercase;color:var(--orange-d,#C2621F);margin-bottom:5px}
+.why2 p{font-size:13px;line-height:1.55;color:var(--muted);margin:0}
+.gapcost{display:flex;flex-direction:column;gap:10px;margin-top:6px}
+.gcrow{display:grid;grid-template-columns:minmax(150px,1.4fr) 1fr minmax(110px,auto);gap:14px;align-items:center;
+  background:#fff;border:1px solid var(--line,#E7DCCE);border-radius:12px;padding:11px 14px}
+.gcname b{display:block;font-size:14px}
+.gcname small{display:block;font-size:12px;color:var(--muted);line-height:1.4;margin-top:2px}
+.gcbar{height:10px;background:#F2EAE0;border-radius:99px;overflow:hidden}
+.gcbar i{display:block;height:10px;background:var(--orange);border-radius:99px}
+.gcnum{text-align:right}
+.gcnum b{display:block;font-family:ui-monospace,Menlo,monospace;font-size:16px;color:var(--ink)}
+.gcnum small{font-size:11.5px;color:var(--muted)}
+@media(max-width:640px){.gcrow{grid-template-columns:1fr;gap:8px}.gcnum{text-align:left}}
+.chainwhy{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:0 16px 16px}
+.chainwhy .whycol{background:var(--cream,#FBF6F0);border-radius:12px;padding:12px 14px}
+.chainwhy b{display:block;font-size:10.5px;letter-spacing:1.1px;text-transform:uppercase;color:var(--orange-d,#C2621F);margin-bottom:5px}
+.chainwhy ul{margin:0;padding-left:16px}
+.chainwhy li{font-size:12.5px;line-height:1.5;color:var(--ink);margin-bottom:5px}
+.chainwhy p{font-size:12.5px;line-height:1.5;color:var(--ink);margin:0}
+.chainwhy .mini{font-size:12px;color:var(--muted);margin-top:8px;font-style:italic}
+@media(max-width:820px){.chainwhy{grid-template-columns:1fr}}
+.chainflow .arrow{position:relative}
+.chainflow .arrow::before{content:"";position:absolute;top:50%;left:2px;right:2px;height:2px;background:var(--line,#E7DCCE)}
+.chainflow .arrow::after{content:"";position:absolute;top:50%;right:2px;width:0;height:0;transform:translateY(-50%);
+  border-top:5px solid transparent;border-bottom:5px solid transparent;border-left:7px solid var(--line,#E7DCCE)}
+@media(max-width:820px){
+  .chainflow{grid-template-columns:1fr;gap:8px}
+  .chainflow .arrow{height:16px}
+  .chainflow .arrow::before{top:2px;bottom:2px;left:50%;right:auto;width:2px;height:auto}
+  .chainflow .arrow::after{top:auto;bottom:0;right:50%;transform:translateX(50%);
+    border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid var(--line,#E7DCCE);border-bottom:0}
+}
+.pbar{position:relative}
+.pbar .bench{position:absolute;top:-4px;width:2px;height:calc(100% + 8px);background:var(--ink);opacity:.55;border-radius:2px}
+.pbar .bench::after{content:"";position:absolute;top:-4px;left:-3px;width:8px;height:8px;border-radius:50%;background:var(--ink);opacity:.75}
+.benchline{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:5px}
+.benchline .up{color:var(--green);font-weight:600}
+.benchline .down{color:var(--red);font-weight:600}
+.anchors{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px}
+.anchors>div{background:var(--cream,#FBF6F0);border-radius:10px;padding:9px 11px;font-size:12.5px;color:var(--ink);line-height:1.45}
+.anchors b{display:block;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--orange-d,#C2621F);margin-bottom:3px}
+.benchnote{font-size:12.5px;color:var(--muted);margin-top:7px;font-style:italic}
+@media(max-width:560px){.anchors{grid-template-columns:1fr}}
+.adjust{margin-top:18px;border:1px solid var(--line,#E7DCCE);border-radius:16px;padding:14px 16px;background:var(--cream,#FBF6F0)}
+.adjust summary{cursor:pointer;font-weight:700;font-size:15px;color:var(--orange-d,#C2621F);list-style:none}
+.adjust summary::-webkit-details-marker{display:none}
+.adjust summary::before{content:"▸ ";}
+.adjust[open] summary::before{content:"▾ ";}
+.szrow{background:#fff;border:1px solid var(--line,#E7DCCE);border-radius:14px;padding:14px 16px;margin-bottom:10px}
+.szrow.unknown{opacity:.55}
+.bands{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 8px}
+.bands .choice{flex:0 1 auto;padding:9px 14px;font-size:14px}
+.szhead{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.szhead label{font-size:14.5px;font-weight:600;color:var(--ink)}
+.szhead label small{display:block;font-weight:400;font-size:12.5px;color:var(--muted);margin-top:2px}
+.szval{font-family:ui-monospace,Menlo,monospace;font-size:19px;font-weight:700;color:var(--orange-d,#C2621F);white-space:nowrap}
+.szval input{width:120px;font:inherit;color:inherit;border:1px solid transparent;background:transparent;
+  text-align:right;border-radius:8px;padding:2px 6px}
+.szval input:focus{border-color:var(--orange);background:#fff;outline:none}
+.szslide{width:100%;margin:10px 0 2px;accent-color:var(--orange);height:22px}
+.szfoot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.szdk{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);cursor:pointer;user-select:none}
+.szdk input{accent-color:var(--orange);width:15px;height:15px}
+.ownwords{margin-top:16px}
+.ownwords>span{display:block;font-size:12.5px;letter-spacing:1.2px;text-transform:uppercase;
+  font-weight:600;color:var(--muted);margin-bottom:7px}
+.choice.picked{border-color:var(--orange);background:var(--orange-soft,#FAEDE1);font-weight:600}
+.typednote{display:none;margin-top:7px;font-size:12.5px;color:var(--orange-d,#C2621F)}
+.typednote.on{display:block}
+.hero{padding:48px 0 26px}
+/* The question is split into a setup line and the punch, so the page reads
+   as a sentence with hierarchy rather than one long block of type. */
+.hero .setup{font-size:clamp(17px,2.5vw,22px);font-weight:600;color:var(--muted);
+  line-height:1.35;margin:14px 0 6px;max-width:640px}
+.hero h1{font-size:clamp(34px,5.6vw,54px);font-weight:800;line-height:1.06;margin:0 0 18px;color:var(--ink);max-width:700px}
 .hero h1 em{font-style:normal;color:var(--orange)}
-.hero p{color:#3D4C55;max-width:620px;font-size:17px}
+.hero p{color:#3D4C55;max-width:600px;font-size:16.5px}
+/* Three tiles: what they walk away with. Stops the page being one question. */
+.getrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(184px,1fr));gap:12px;margin:26px 0 4px;max-width:720px}
+.getcard{background:#fff;border:1px solid var(--line,#E7DCCE);border-radius:14px;padding:14px 16px}
+.getcard b{display:block;font-size:14px;margin-bottom:3px;color:var(--ink)}
+.getcard span{font-size:13px;color:var(--muted);line-height:1.45}
+.getcard i{display:block;width:26px;height:26px;border-radius:8px;background:var(--orange-soft,#FAEDE1);
+  margin-bottom:9px;position:relative}
+.getcard i::after{content:"";position:absolute;inset:8px;border-radius:3px;background:var(--orange)}
+.getcard:nth-child(2) i::after{border-radius:50%}
+.getcard:nth-child(3) i::after{border-radius:2px;inset:9px 7px}
 .hero .sub{margin-top:22px;font-family:'Poppins',sans-serif;font-size:11.5px;color:var(--muted);letter-spacing:1.5px;font-weight:600;text-transform:uppercase}
 .rack{display:flex;gap:6px;margin:26px 0 6px}
 .slot{width:46px;height:13px;border-radius:999px;background:#E9DFD3;position:relative}
@@ -108,6 +207,21 @@ label.f small{font-weight:400;color:var(--muted)}
 .tiny{font-size:12px;color:#93A2AB;margin-top:10px}
 /* ---------- report ---------- */
 .rsec{margin:36px 0}
+/* Executive short view: the report opens tightened, full detail one tap away. */
+.readmode{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:18px 0 4px;padding:12px 14px;
+  background:var(--soft,#FAEDE1);border-radius:14px}
+.readmode b{font-size:13.5px}
+.readmode .rm{border:1px solid rgba(30,45,54,.18);background:#fff;border-radius:999px;padding:7px 15px;
+  font:600 13px/1 inherit;cursor:pointer;color:var(--ink,#1E2D36)}
+.readmode .rm.on{background:var(--orange,#DD7A36);border-color:var(--orange,#DD7A36);color:#fff}
+.readmode small{color:var(--muted,#5E6B75);font-size:12.5px;width:100%}
+.execbox{border:2px solid var(--orange,#DD7A36);border-radius:18px;padding:20px 22px;margin:18px 0 8px;background:#fff}
+.execbox h2{font-size:21px;margin:4px 0 12px}
+.execbox ul{margin:0;padding-left:18px}
+.execbox li{margin:0 0 9px;font-size:15px;line-height:1.5}
+.execbox li b{color:var(--ink,#1E2D36)}
+body.short .detailonly{display:none}
+body.short .rsec.detailonly{display:none}
 .rsec h2{font-size:23px;margin:6px 0 12px}
 .verdict-strip{border-radius:22px;padding:30px;color:#fff;background:var(--dark)}
 .vbadge{display:inline-block;font-family:'Poppins',sans-serif;font-weight:700;font-size:14px;letter-spacing:.05em;padding:8px 18px;border-radius:999px;text-transform:uppercase}
@@ -212,14 +326,22 @@ footer.site{padding:34px 0 44px;color:var(--muted);font-size:12.5px;text-align:c
 <section class="screen on" id="s-intro"><div class="wrap">
   <div class="hero">
     <div class="eyebrow">Free 4 minute self assessment</div>
-    <h1>Can you take a <em>server down</em><br>without holding your breath?</h1>
+    <p class="setup">Your most critical system goes down tomorrow morning.</p>
+    <h1>How fast could you <em>actually</em> recover?</h1>
     <div class="rack" aria-hidden="true">
       <span class="slot"></span><span class="slot"></span><span class="slot down"></span><span class="slot"></span><span class="slot"></span><span class="slot"></span>
     </div>
-    <p>If the honest answer is "we just never do," your infrastructure is making decisions for you. Answer 11 straight questions and get a scored resilience report: your weakest layer, your blind spot, what doing nothing costs in your own figures, and a 90 day plan to fix it.</p>
-    <div class="sub">No generic scores · Your answers, your numbers · Honest verdict even if it's good news</div>
+    <p>Most teams have never tested the answer. Eleven straight questions, answered honestly, and you get a scored report on where your infrastructure actually stands.</p>
+
+    <div class="getrow">
+      <div class="getcard"><i></i><b>Your weakest layer</b><span>Scored across four pillars. The verdict follows the lowest one.</span></div>
+      <div class="getcard"><i></i><b>What it costs</b><span>The monthly bleed, worked out from your figures, never ours.</span></div>
+      <div class="getcard"><i></i><b>A 90 day plan</b><span>One thing first, sequenced, with the reason it goes first.</span></div>
+    </div>
+
     <button class="cta" onclick="startAudit()">Start the audit &rarr;</button>
-    <div class="timebox">11 questions · about 4 minutes · report emailed to you</div>
+    <div class="timebox">11 questions · about 4 minutes · your report at the end</div>
+    <div class="sub">No generic scores · Your answers, your numbers · Honest verdict even if it's good news</div>
   </div>
 </div></section>
 
@@ -245,13 +367,19 @@ footer.site{padding:34px 0 44px;color:var(--muted);font-size:12.5px;text-align:c
   <h2 class="qtext" id="qText"></h2>
   <div class="why"><b>WHY WE ASK</b><span id="qWhy"></span></div>
   <div id="qFree">
-    <div class="ansbox">
-      <textarea id="qAnswer" placeholder="Type or dictate your answer. Honest beats polished."></textarea>
-      <button class="mic" id="micBtn" title="Dictate your answer" aria-label="Dictate">🎙</button>
+    <div class="choices" id="qChoices"></div>
+    <div class="ownwords">
+      <span>Or say it in your own words</span>
+      <div class="ansbox">
+        <textarea id="qAnswer" placeholder="Anything the options above miss. Honest beats polished."></textarea>
+        <button class="mic" id="micBtn" title="Dictate your answer" aria-label="Dictate">🎙</button>
+      </div>
+      <div class="typednote" id="typedNote">Using your own words. Your typed answer replaces the option above.</div>
     </div>
     <div class="qactions">
-      <button class="btn" onclick="submitAnswer()">Next</button>
+      <button class="btn" id="typedNext" style="display:none" onclick="submitAnswer()">Next</button>
       <button class="unsure" id="unsureBtn" onclick="reroute()">Not sure? Ask me a different way</button>
+      <button class="unsure" id="noIdeaBtn" onclick="noAnswer()">I don't have that answer</button>
     </div>
   </div>
   <div id="qMcq" class="mcq" style="display:none">
@@ -304,14 +432,10 @@ footer.site{padding:34px 0 44px;color:var(--muted);font-size:12.5px;text-align:c
     <span class="curtoggle" role="group" aria-label="Currency"><button id="curUSD" class="sel" onclick="setCur('$')">$</button><button id="curGBP" onclick="setCur('£')">£</button></span>
   </h2>
   <p style="color:var(--muted);font-size:14.5px;margin-bottom:18px">We never invent money. Every cost figure in your report is computed from these numbers and nothing else. Skip this and the report simply shows no money sections.</p>
-  <div class="grid2">
-    <div><label class="f">Active users on your platform <small>(rough is fine)</small></label><input type="number" id="szUsers" min="0" placeholder="e.g. 12000"></div>
-    <div><label class="f">Monthly revenue <small>(recurring or average)</small></label><input type="number" id="szRevenue" min="0" placeholder="e.g. 400000"></div>
-    <div><label class="f">Average outage length, hours</label><input type="number" id="szOutHrs" min="0" step="0.5" placeholder="e.g. 3"></div>
-    <div><label class="f">Unplanned outages per year <small>(honest count)</small></label><input type="number" id="szOutYr" min="0" placeholder="e.g. 4"></div>
-    <div><label class="f">Engineering hours per month lost to firefighting <small>(instead of roadmap work)</small></label><input type="number" id="szFFHrs" min="0" placeholder="e.g. 60"></div>
-    <div><label class="f">Fully loaded engineer cost per hour <small>(optional; hours shown without it)</small></label><input type="number" id="szRate" min="0" placeholder="e.g. 95"></div>
-    <div><label class="f">SLA penalty exposure per incident <small>(optional)</small></label><input type="number" id="szSLA" min="0" placeholder="e.g. 5000"></div>
+  <div id="sizeFields"></div>
+  <div class="card" style="margin-top:16px;background:var(--orange-soft,#FAEDE1);border:0">
+    <b style="font-size:14px">Not sure on any of these?</b>
+    <p style="font-size:13.5px;color:var(--ink);margin-top:5px">Pick the closest range, that is all we need. If a line is genuinely unknown, tick <i>I don't know</i> and it is left out of the maths entirely and named as a gap in your report. Nothing is ever invented to fill a blank, and you can set exact figures on the report itself afterwards.</p>
   </div>
   <div class="qactions">
     <button class="btn" onclick="submitSizing(false)">Build my report</button>
@@ -359,6 +483,10 @@ footer.site{padding:34px 0 44px;color:var(--muted);font-size:12.5px;text-align:c
 const CALENDLY = "{{ calendly_url }}";
 const CONTACT = "{{ contact_email }}";
 const CONSULTANT = new URLSearchParams(location.search).get("mode")==="consultant";
+/* Split test support: ?report=hold captures the lead and the full analysis, but
+   shows a holding screen instead of the report, so the findings are delivered
+   after the podcast rather than on the prep call. Default stays instant. */
+const HOLD_REPORT = new URLSearchParams(location.search).get("report")==="hold";
 if(CONSULTANT) document.getElementById("consultBadge").style.display="inline-block";
 
 const LANES = [
@@ -382,9 +510,9 @@ const QUESTIONS = [
   why:"Everything downstream depends on where the single points of failure can hide: cloud, on prem, hybrid, an MSP, or one very tired person.",
   canned:{q:"Which of these sounds most like your setup?",o:["It's all in public cloud and our own team manages it","It's hybrid: some cloud, some servers we own","An outside provider or MSP manages most of it","Honestly, it grew organically and no one drew the map","On prem, our own hardware, our own people"]}},
  {id:"server", n:2, followup:true,
-  q:"If you took one server offline right now for maintenance, what happens?",
-  why:"This one answer predicts almost everything: whether workloads are pooled, whether the app can survive losing a piece, and whether maintenance actually ever happens.",
-  canned:{q:"Be honest, which is closest?",o:["Nothing happens, traffic shifts automatically and no one notices","Some clients would feel it, so we schedule it carefully","We'd have to warn clients first, it means downtime","We simply never take servers down","I genuinely don't know what would happen"]}},
+  q:"If your most critical system went down tomorrow, what would happen to the business, and how quickly could you actually recover?",
+  why:"This one answer predicts almost everything: whether workloads are pooled, whether the business can survive losing a piece, and how long the gap between failure and recovery really is.",
+  canned:{q:"Be honest, which is closest?",o:["Nothing stops, traffic shifts automatically and customers never notice","Some customers would feel it, but we would be back within the hour","We would be down for a few hours and customers would know about it","A day or more, and it would be all hands until it is fixed","I genuinely don't know what would happen"]}},
  {id:"outage", n:3, followup:true,
   q:"When was your last unplanned outage, how long did it last, and what caused it?",
   why:"Outage history is the honest version of your architecture diagram.",
@@ -425,7 +553,7 @@ const QUESTIONS = [
 
 let state = {
   industry:null, role:null, qi:0, answers:{}, unsure:[], goal:"",
-  sizing:null, cur:"$", ts:Date.now(), done:false
+  sizing:null, cur:"$", ts:Date.now(), done:false, picked:null
 };
 let report=null, reportIsFallback=false, currentFU=null;
 
@@ -446,7 +574,7 @@ function resumeState(){
   else if(!state.role) show("s-role");
   else if(state.qi < QUESTIONS.length){ show("s-question"); renderQuestion(); }
   else if(!state.goal) show("s-goal");
-  else show("s-sizing");
+  else { show("s-sizing"); renderSizing(); }
   track("resume");
 }
 function track(name,props){ try{navigator.sendBeacon("/api/event",new Blob([JSON.stringify({name,props:props||{}})],{type:"application/json"}));}catch(e){} }
@@ -474,7 +602,7 @@ const GOAL_OPTS=[
 function renderGoalChoices(){
   const gc=document.getElementById("goalChoices"); gc.innerHTML="";
   GOAL_OPTS.forEach(g=>{ const b=document.createElement("button"); b.className="choice"; b.textContent=g;
-    b.onclick=()=>{ state.goal=g; saveState(); track("goal",{via:"choice"}); show("s-sizing"); };
+    b.onclick=()=>{ state.goal=g; saveState(); track("goal",{via:"choice"}); show("s-sizing"); renderSizing(); };
     gc.appendChild(b); });
 }
 function startAudit(){ track("start"); renderChoices(); renderGoalChoices(); show("s-lane"); }
@@ -499,16 +627,71 @@ function renderQuestion(){
   document.getElementById("qText").textContent=Q.q;
   document.getElementById("qWhy").textContent=Q.why;
   document.getElementById("qAnswer").value="";
+  document.getElementById("typedNote").classList.remove("on");
+  state.picked=null;
+  const tn=document.getElementById("typedNext"); if(tn) tn.style.display="none";
+  paintChoices(Q);
   document.getElementById("qFree").style.display="block";
   document.getElementById("qMcq").style.display="none";
   document.getElementById("gapNote").style.display="none";
   document.getElementById("unsureBtn").style.display="inline";
+  prefetchReroute(Q);
+}
+
+/* Warm the reroute in the background the moment a question renders, so
+   "Ask me a different way" is instant instead of waiting on the model. */
+const REROUTE_CACHE={};
+function prefetchReroute(Q){
+  if(REROUTE_CACHE[Q.id]) return;
+  REROUTE_CACHE[Q.id]="pending";
+  const prior={}; Object.values(state.answers).forEach(a=>{prior[a.question]=a.answer});
+  fetch("/api/reroute",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({industry:state.industry,role:state.role,question:Q.q,rationale:Q.why,prior})})
+    .then(r=>r.ok?r.json():null)
+    .then(d=>{ REROUTE_CACHE[Q.id]=(d&&d.options&&d.options.length)?{q:d.question||Q.canned.q,o:d.options}:null; })
+    .catch(()=>{ REROUTE_CACHE[Q.id]=null; });
+}
+/* Multiple choice first on every question. The canned sets double as the
+   visible options, so there is no wait and no blank box to stare at. */
+function paintChoices(Q){
+  const box=document.getElementById("qChoices");
+  box.innerHTML="";
+  (Q.canned&&Q.canned.o?Q.canned.o:[]).forEach(opt=>{
+    const b=document.createElement("button");
+    b.className="choice"; b.type="button"; b.textContent=opt;
+    b.onclick=async ()=>{
+      /* Tap advances. No Next press, no second click. */
+      document.getElementById("qAnswer").value="";
+      document.getElementById("typedNote").classList.remove("on");
+      Array.from(box.children).forEach(c=>{c.classList.remove("picked"); c.disabled=true;});
+      b.classList.add("picked");
+      state.picked=null;
+      state.answers[Q.id]={question:Q.q,answer:opt,via:"multiple choice"};
+      saveState(); track("answered",{q:Q.id,via:"mcq"});
+      await new Promise(r=>setTimeout(r,180));   /* let the highlight register */
+      if(Q.followup||CONSULTANT){ await maybeFollowup(Q,opt); } else { nextQuestion(); }
+    };
+    box.appendChild(b);
+  });
+}
+/* Typing wins: it clears the tapped option so the answer that counts is visible. */
+function onTypedAnswer(){
+  const t=document.getElementById("qAnswer").value.trim();
+  const note=document.getElementById("typedNote");
+  if(t){
+    if(state.picked){ state.picked=null;
+      Array.from(document.getElementById("qChoices").children).forEach(c=>c.classList.remove("picked")); }
+    note.classList.add("on");
+    document.getElementById("typedNext").style.display="inline-flex";
+  } else { note.classList.remove("on"); document.getElementById("typedNext").style.display="none"; }
 }
 async function submitAnswer(){
   const Q=QUESTIONS[state.qi];
-  const a=document.getElementById("qAnswer").value.trim();
+  const typed=document.getElementById("qAnswer").value.trim();
+  const a = typed || state.picked;
   if(!a){ document.getElementById("qAnswer").focus(); return; }
-  state.answers[Q.id]={question:Q.q, answer:a}; saveState(); track("answered",{q:Q.id});
+  state.answers[Q.id]={question:Q.q, answer:a, via: typed?"typed":"multiple choice"};
+  saveState(); track("answered",{q:Q.id,via:typed?"typed":"mcq"});
   if((Q.followup||CONSULTANT)){ await maybeFollowup(Q,a); } else { nextQuestion(); }
 }
 async function maybeFollowup(Q,a){
@@ -538,13 +721,21 @@ function nextQuestion(){
 /* --- "Not sure" two stage reroute --- */
 async function reroute(){
   const Q=QUESTIONS[state.qi]; track("unsure",{q:Q.id});
-  let mcq=Q.canned;
-  try{
-    const prior={}; Object.values(state.answers).forEach(a=>{prior[a.question]=a.answer});
-    const r=await fetch("/api/reroute",{method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({industry:state.industry,role:state.role,question:Q.q,rationale:Q.why,prior})});
-    if(r.ok){ const d=await r.json(); if(d.options&&d.options.length) mcq={q:d.question||Q.canned.q,o:d.options}; }
-  }catch(e){}
+  const cached=REROUTE_CACHE[Q.id];
+  /* Paint immediately: cached AI version if warm, otherwise the canned set.
+     No spinner, no wait. If the prefetch is still in flight we upgrade in place. */
+  paintMcq(Q, (cached && cached!=="pending") ? cached : Q.canned);
+  if(cached==="pending"){
+    const started=Date.now();
+    const poll=setInterval(()=>{
+      const c=REROUTE_CACHE[Q.id];
+      if(c && c!=="pending"){ clearInterval(poll);
+        if(state.qi===QUESTIONS.indexOf(Q) && document.getElementById("qMcq").style.display==="block") paintMcq(Q,c);
+      } else if(Date.now()-started>6000){ clearInterval(poll); }
+    },250);
+  }
+}
+function paintMcq(Q,mcq){
   document.getElementById("qFree").style.display="none";
   document.getElementById("unsureBtn").style.display="none";
   const box=document.getElementById("qMcq"); box.style.display="block";
@@ -561,6 +752,18 @@ function submitMcqFree(){
   if(!a){ document.getElementById("mcqFree").focus(); return; }
   state.answers[Q.id]={question:Q.q,answer:a}; saveState(); nextQuestion();
 }
+/* Fail safe: they genuinely do not hold the answer. Recorded as a gap, never
+   guessed, and the report treats a gap as a finding rather than a blank. */
+function noAnswer(){
+  const Q=QUESTIONS[state.qi];
+  state.answers[Q.id]={question:Q.q,answer:"Not held: the person answering did not have this information",unsure:true,via:"no data"};
+  if(state.unsure.indexOf(Q.id)<0) state.unsure.push(Q.id);
+  saveState(); track("gap",{q:Q.id,via:"no_data"});
+  const n=document.getElementById("gapNote");
+  n.textContent="Noted. Not knowing is itself a finding, so your report flags this as a visibility gap rather than guessing a score.";
+  n.style.display="block";
+  setTimeout(()=>{ n.style.display="none"; nextQuestion(); },1200);
+}
 function recordGap(){
   const Q=QUESTIONS[state.qi];
   state.answers[Q.id]={question:Q.q,answer:"Not sure, flagged as an open question",unsure:true};
@@ -572,30 +775,82 @@ function recordGap(){
 function submitGoal(){
   const g=document.getElementById("goalAnswer").value.trim();
   if(!g){ document.getElementById("goalAnswer").focus(); return; }
-  state.goal=g; saveState(); track("goal",{via:"typed"}); show("s-sizing");
+  state.goal=g; saveState(); track("goal",{via:"typed"}); show("s-sizing"); renderSizing();
 }
 function setCur(c){ state.cur=c;
   document.getElementById("curUSD").classList.toggle("sel",c==="$");
   document.getElementById("curGBP").classList.toggle("sel",c==="£"); saveState(); }
 function num(id){ const v=parseFloat(document.getElementById(id).value); return isNaN(v)?0:v; }
+/* The sizing fields. Each one drags, accepts a typed figure, or gets marked
+   unknown. Unknown fields drop out of the maths and are named as gaps. */
+const SIZE_FIELDS=[
+ {k:"revenue", label:"Monthly revenue", hint:"Recurring or average. A range is fine.", min:0, max:2000000, step:5000, def:250000, money:true,
+  bands:[["Under 50k",25000],["50k to 150k",100000],["150k to 400k",275000],["400k to 1m",700000],["Over 1m",1500000]]},
+ {k:"outHrs",  label:"Average outage length", hint:"When something does go down, how long is it out?", min:0, max:24, step:0.5, def:3, unit:" hrs",
+  bands:[["Under 30 minutes",0.5],["30 mins to 2 hours",1.25],["2 to 4 hours",3],["4 to 8 hours",6],["Most of a day or worse",12]]},
+ {k:"outYr",   label:"Unplanned outages per year", hint:"The honest count, not the reported one.", min:0, max:52, step:1, def:4, unit:"/yr",
+  bands:[["None that we can recall",0],["One or two",1.5],["Three to six",4.5],["Roughly monthly",12],["More often than monthly",24]]},
+ {k:"ffHrs",   label:"Engineering hours a month lost to firefighting", hint:"Time spent rescuing instead of building.", min:0, max:400, step:5, def:60, unit:" hrs",
+  bands:[["Barely any",5],["Under 20 hours",12],["20 to 60 hours",40],["60 to 150 hours",100],["More than 150 hours",200]]},
+ {k:"rate",    label:"Fully loaded engineer cost per hour", hint:"Salary plus overheads. Skip it and we show hours instead of money.", min:0, max:300, step:5, def:95, money:true,
+  bands:[["Under 50",40],["50 to 80",65],["80 to 120",100],["120 to 180",150],["Over 180",220]]},
+ {k:"sla",     label:"SLA penalty exposure per incident", hint:"What a breach costs you contractually.", min:0, max:100000, step:1000, def:0, money:true,
+  bands:[["No SLA penalties",0],["Under 5k",2500],["5k to 20k",12500],["20k to 50k",35000],["Over 50k",75000]]},
+ {k:"users",   label:"Active users on your platform", hint:"Context only, never used in the money maths.", min:0, max:500000, step:1000, def:12000,
+  bands:[["Under 1,000",500],["1,000 to 10,000",5000],["10,000 to 50,000",30000],["50,000 to 250,000",150000],["Over 250,000",400000]]}
+];
+function szFmt(f,v){ return (f.money?state.cur:"") + Math.round(v).toLocaleString("en-US") + (f.unit||""); }
+function renderSizing(){
+  const host=document.getElementById("sizeFields"); if(!host) return;
+  host.innerHTML="";
+  SIZE_FIELDS.forEach(f=>{
+    const row=document.createElement("div"); row.className="szrow"; row.id="row_"+f.k;
+    row.innerHTML=`<div class="szhead"><label>${f.label}<small>${f.hint}</small></label></div>
+      <div class="choices bands" id="bd_${f.k}">
+        ${f.bands.map((b,i)=>`<button type="button" class="choice" data-i="${i}">${f.money?state.cur:""}${b[0]}</button>`).join("")}
+      </div>
+      <div class="szfoot"><span>Pick the closest range. You can set an exact figure on the report afterwards.</span>
+        <label class="szdk"><input type="checkbox" id="dk_${f.k}"> I don't know this</label></div>`;
+    host.appendChild(row);
+    const box=row.querySelector("#bd_"+f.k), dk=row.querySelector("#dk_"+f.k);
+    Array.from(box.children).forEach(b=>{
+      b.onclick=()=>{ Array.from(box.children).forEach(c=>c.classList.remove("picked"));
+        b.classList.add("picked"); row.dataset.pick=b.dataset.i;
+        if(dk.checked){ dk.checked=false; row.classList.remove("unknown"); } };
+    });
+    dk.addEventListener("change",()=>{ row.classList.toggle("unknown",dk.checked);
+      if(dk.checked){ Array.from(box.children).forEach(c=>c.classList.remove("picked")); delete row.dataset.pick; } });
+  });
+}
 function submitSizing(skipped){
-  state.sizing = skipped?{skipped:true}:{
-    users:num("szUsers"), revenue:num("szRevenue"), outHrs:num("szOutHrs"),
-    outYr:num("szOutYr"), ffHrs:num("szFFHrs"), rate:num("szRate"), sla:num("szSLA"),
-    skipped:false };
-  saveState(); track(skipped?"sizing_skipped":"sizing_done"); runAnalysis();
+  if(skipped){ state.sizing={skipped:true}; }
+  else{
+    const out={skipped:false, unknown:[], bands:{}};
+    SIZE_FIELDS.forEach(f=>{
+      const row=document.getElementById("row_"+f.k), dk=document.getElementById("dk_"+f.k);
+      if(dk&&dk.checked){ out[f.k]=0; out[f.k+"_dk"]=true; out.unknown.push(f.label); return; }
+      const i=row&&row.dataset.pick!=null?+row.dataset.pick:null;
+      if(i==null){ out[f.k]=0; out[f.k+"_dk"]=true; out.unknown.push(f.label); return; }
+      out[f.k]=f.bands[i][1];            /* midpoint of the band they picked */
+      out.bands[f.k]=f.bands[i][0];      /* their words, quoted in the working */
+    });
+    state.sizing=out;
+  }
+  saveState(); track(skipped?"sizing_skipped":"sizing_done",{unknown:(state.sizing.unknown||[]).length}); runAnalysis();
 }
 
 /* ------------------------------------------------ money math (client side, their figures only) */
 function money(){
   const s=state.sizing||{}; if(s.skipped) return null;
+  const V=k=>(s[k+"_dk"]?0:(s[k]||0));   /* unknown fields drop out of the maths entirely */
   const HOURS=160; /* 40 hours a week times 4 weeks, stated in the report */
-  const revHr = s.revenue>0 ? s.revenue/HOURS : 0;
-  const outageYr = revHr*(s.outHrs||0)*(s.outYr||0) + (s.sla||0)*(s.outYr||0);
-  const ffMonth = (s.rate>0 && s.ffHrs>0) ? s.ffHrs*s.rate : 0;
+  const revHr = V("revenue")>0 ? V("revenue")/HOURS : 0;
+  const outageYr = revHr*V("outHrs")*V("outYr") + V("sla")*V("outYr");
+  const ffMonth = (V("rate")>0 && V("ffHrs")>0) ? V("ffHrs")*V("rate") : 0;
   const bleedMonth = outageYr/12 + ffMonth;
   return { HOURS, revHr, outageYr, ffMonth, bleedMonth,
-    ffHrsWeek: s.ffHrs?s.ffHrs/4:0, hasMoney: bleedMonth>0, hasHours: (s.ffHrs||0)>0 };
+    ffHrsWeek: V("ffHrs")/4, hasMoney: bleedMonth>0, hasHours: V("ffHrs")>0,
+    unknown: s.unknown||[], fmt:(n)=>state.cur+Math.round(n).toLocaleString("en-US"), perMonth: bleedMonth };
 }
 function fmt(n){ return state.cur + Math.round(n).toLocaleString("en-US"); }
 
@@ -632,10 +887,22 @@ function fallbackReport(){
   const A=id=>state.answers[id]||{answer:""};
   const px=(ids)=>{ const arr=ids.map(i=>scoreAnswer(A(i).answer)); return Math.round(arr.reduce((a,b)=>a+b,0)/arr.length*10)/10; };
   const pillars=[
-    {key:"resilience",name:"Resilience and availability",score:px(["server","redundancy"]),reason:"Scored from what you told us about taking servers down and whether your failover paths have ever actually been exercised."},
-    {key:"security",name:"Security and maintenance debt",score:px(["debt","security"]),reason:"Scored from your patch reality and who, if anyone, owns security end to end."},
-    {key:"scale",name:"Scalability, performance and cost",score:px(["scale","cost","outage"]),reason:"Scored from what breaks at 2x, your cost pressure, and your outage history."},
-    {key:"ops",name:"Operational readiness",score:px(["recovery","team","stack"]),reason:"Scored from your restore testing, the 2am answer, and how well mapped the environment is."},
+    {key:"resilience",name:"Resilience and availability",score:px(["server","redundancy"]),source_questions:["server","redundancy"],
+     reason:"Scored from what you told us about losing a system and whether your failover paths have ever actually been exercised.",
+     gap:"Failover paths that have not been proven under real conditions.",
+     consequence:"An ordinary component failure becomes customer facing downtime, with recovery time discovered during the incident."},
+    {key:"security",name:"Security and maintenance debt",score:px(["debt","security"]),source_questions:["debt","security"],
+     reason:"Scored from your patch reality and who, if anyone, owns security end to end.",
+     gap:"Systems carrying known vulnerabilities because they cannot take a maintenance window.",
+     consequence:"The exact path ransomware takes stays open, and no single owner is watching it end to end."},
+    {key:"scale",name:"Scalability, performance and cost",score:px(["scale","cost","outage"]),source_questions:["scale","cost","outage"],
+     reason:"Scored from what breaks at 2x, your cost pressure, and your outage history.",
+     gap:"Behaviour and cost at twice the load are unmodelled.",
+     consequence:"Growth arrives as a performance surprise and a cost surprise in the same quarter."},
+    {key:"ops",name:"Operational readiness",score:px(["recovery","team","stack"]),source_questions:["recovery","team","stack"],
+     reason:"Scored from your restore testing, the 2am answer, and how well mapped the environment is.",
+     gap:"Recovery depends on specific people and untested runbooks.",
+     consequence:"An incident lasts as long as it takes to reach the one person who knows the answer."},
   ];
   const gaps=state.unsure.length;
   return {
@@ -687,16 +954,16 @@ function computeVerdictJS(pillars){
   const weakest=Math.min(...scores);
   const wp=pillars[scores.indexOf(weakest)].name;
   const bands=[
-    {key:"luck",name:"Running on luck",min:0,max:3.99,meaning:"The next incident sets your timeline, not you. Specific gaps mean an ordinary failure becomes an outage."},
-    {key:"exposed",name:"Exposed in places",min:4,max:6.99,meaning:"The foundations exist but specific, known gaps remain. Fixable inside 90 days."},
-    {key:"hardened",name:"Hardened",min:7,max:10,meaning:"You can take a server down. The remaining work is optimisation, not rescue."}];
+    {key:"luck",name:"Critical Exposure",min:0,max:3.99,meaning:"At least one layer will turn an ordinary failure into a business affecting outage. The next incident sets your timeline, not you."},
+    {key:"exposed",name:"Partially Resilient",min:4,max:6.99,meaning:"The foundations are sound, but named gaps remain in specific layers. Addressable inside 90 days."},
+    {key:"hardened",name:"Resilient",min:7,max:10,meaning:"You could lose a system tomorrow and recover inside your own tolerance. Remaining work is optimisation, not remediation."}];
   const b=bands.find(x=>weakest>=x.min&&weakest<=x.max);
   let nxt=null; for(const x of bands){ if(x.min>weakest){ nxt={name:x.name,gap:Math.round((x.min-weakest)*10)/10}; break; } }
   return {verdict:b.name,verdict_key:b.key,verdict_meaning:b.meaning,weakest_pillar:wp,
     weakest_score:Math.round(weakest*10)/10,
     readiness_pct:Math.round(scores.reduce((a,c)=>a+c,0)/(10*scores.length)*100),
     next_band:nxt,bands,
-    rule:"Weakest pillar 7 or above: Hardened. 4 to 6.9: Exposed in places. Under 4: Running on luck. Your verdict follows your lowest pillar, because an environment is only as resilient as its weakest layer."};
+    rule:"Weakest pillar 7 or above: Resilient. 4 to 6.9: Partially Resilient. Under 4: Critical Exposure. Your verdict follows your lowest pillar, because an environment is only as resilient as its weakest layer."};
 }
 
 /* ------------------------------------------------ teaser + gate */
@@ -739,13 +1006,37 @@ async function unlockReport(){
   if(!last){ document.getElementById("gLast").focus(); return; }
   if(!company){ document.getElementById("gCompany").focus(); return; }
   track("gate_unlock");
-  window._leadEmail=email;
-  revealReport();
+  window._leadEmail=email; state.company=company; saveState();
+  if(HOLD_REPORT){ showHold(first); } else { revealReport(); }
   fetch("/api/lead",{method:"POST",headers:{"Content-Type":"application/json"},
     body:JSON.stringify({email,name:first,last_name:last,company,role:state.role,industry:state.industry,
-      headline:report.headline,verdict:report.computed.verdict,report_html:emailHTML()})})
+      headline:report.headline,verdict:report.computed.verdict,report_html:emailHTML(),
+      delivery:HOLD_REPORT?"held_for_post_podcast":"instant",send_to_prospect:!HOLD_REPORT})})
     .then(r=>r.json()).then(d=>{ window._emailed=d.emailed; refreshEmailBtn(); })
     .catch(()=>{});
+}
+/* Holding screen for the post podcast delivery arm of the split test. */
+function showHold(firstName){
+  document.getElementById("gateBox").style.display="none";
+  document.getElementById("teaser").querySelectorAll(".blurred").forEach(x=>x.remove());
+  const R=document.getElementById("fullReport");
+  R.style.display="block";
+  R.innerHTML=`<div class="execbox"><span class="eyebrow">Your answers are in</span>
+    <h2>Thanks${firstName?", "+esc(firstName):""}. Your resilience report is being prepared.</h2>
+    <ul>
+      <li><b>What happens next:</b> we walk you through the findings together after the recording, so you get the context behind the numbers rather than a PDF landing cold.</li>
+      <li><b>What is in it:</b> your score across four pillars, your weakest layer, the blind spot your answers point at, what standing still costs in your own figures, and a 90 day plan.</li>
+      <li><b>Your copy:</b> the full report follows by email straight after, yours to forward internally.</li>
+    </ul>
+  </div>
+  <div class="ctabox closing">
+    <span class="eyebrow" style="color:var(--orange-l)">While you are here</span>
+    <h2>Anything you want covered on the call?</h2>
+    <p>If something in those questions touched a nerve, tell us now and we will make sure the walkthrough starts there.</p>
+    <a class="btn" href="${CALENDLY}" target="_blank" rel="noopener" onclick="track('cta_click')">Book the walkthrough</a>
+    <div class="actions"><button class="btn ghost sm" onclick="startAgain()">Start again</button></div>
+  </div>`;
+  track("report_held");
 }
 function revealReport(){
   document.getElementById("gateBox").style.display="none";
@@ -760,14 +1051,139 @@ const PILLAR_DEFS={resilience:"Can you lose a component and stay up: pooling, fa
   security:"Can you patch, and who is watching. Ransomware exposure lives here.",
   scale:"What happens at 2x, and what it costs to run today.",
   ops:"People, process, silos, recovery testing, and the 2am answer."};
+/* Every pillar states its own scale: what a 1 looks like, what a 10 looks like,
+   and where mid market SaaS teams typically land, so the score is benchmarkable
+   rather than a bare number. */
+const PILLAR_SCALE={
+ resilience:{one:"A single component failing takes the application down, and nobody is sure which component.",
+             ten:"Any one component can fail, traffic moves automatically, and customers never notice.",
+             bench:6.1, benchNote:"Most mid market SaaS teams have pooling somewhere but at least one single point of failure they know about."},
+ security:  {one:"Systems that cannot be patched because they can never come down, and no one owns the watching.",
+             ten:"Patching is routine and scheduled, and one named owner watches end to end.",
+             bench:5.4, benchNote:"The most common weak pillar: patching stalls on the systems that matter most."},
+ scale:     {one:"Nobody knows what happens at twice the load, and the infrastructure bill is a surprise each month.",
+             ten:"Capacity is modelled, cost per customer is known, and doubling load is a planned event.",
+             bench:5.8, benchNote:"Cost visibility usually lags capacity planning, especially after cloud growth."},
+ ops:       {one:"Recovery has never been tested, knowledge sits with one person, and 2am is a phone tree.",
+             ten:"Recovery is exercised on a schedule, runbooks are current, and any engineer can answer at 2am.",
+             bench:5.2, benchNote:"Failover that has never been exercised is the single most common finding."}
+};
 function pillarBars(compact){
   return `<div class="card"><span class="eyebrow">Four pillar scorecard</span>
-  <p style="font-size:13px;color:var(--muted);margin-top:6px">Each pillar scored 0 to 10 from your answers. Your verdict follows the lowest bar, because an environment is only as resilient as its weakest layer. Overall readiness is simply the average of the four: <b>${report.computed.readiness_pct}%</b>.</p>
-  ${report.pillars.map(p=>`
-    <div class="pillar"><div class="ptop"><span>${esc(p.name)}</span><span class="mono">${p.score}/10</span></div>
+  <p style="font-size:13px;color:var(--muted);margin-top:6px">Each pillar scored 0 to 10 from your answers. Your verdict follows the lowest bar, because an environment is only as resilient as its weakest layer. Overall readiness is the average of the four: <b>${report.computed.readiness_pct}%</b>.</p>
+  ${report.pillars.map(p=>{
+    const sc=PILLAR_SCALE[p.key]||{}; const bench=sc.bench||null;
+    const delta = bench!=null ? (p.score-bench) : null;
+    return `<div class="pillar"><div class="ptop"><span>${esc(p.name)}</span><span class="mono">${p.score}/10</span></div>
     <div class="pdef">${PILLAR_DEFS[p.key]||""}</div>
-    <div class="pbar"><i style="width:${p.score*10}%"></i></div>
-    ${compact?"":`<div class="preason">${esc(p.reason)}</div>`}</div>`).join("")}</div>`;
+    <div class="pbar">${bench!=null?`<b class="bench" style="left:${bench*10}%" title="Typical score"></b>`:""}<i style="width:${p.score*10}%"></i></div>
+    ${bench!=null?`<div class="benchline"><span>Typical: <b>${bench.toFixed(1)}</b></span>
+      <span class="${delta>=0?"up":"down"}">${delta>=0?"+":""}${delta.toFixed(1)} vs typical</span></div>`:""}
+    ${compact?"":`<div class="anchors">
+      <div><b>A 1 looks like</b>${esc(sc.one||"")}</div>
+      <div><b>A 10 looks like</b>${esc(sc.ten||"")}</div>
+    </div>
+    ${sc.benchNote?`<div class="benchnote">Why the typical score sits there: ${esc(sc.benchNote)}</div>`:""}
+    <div class="preason"><b>Why your score:</b> ${esc(p.reason)}</div>`}</div>`;}).join("")}
+  <p class="note">Typical scores are Protected Harbor's working benchmark for mid market SaaS environments, shown so you can place yourself rather than read a number in isolation.</p></div>`;
+}
+/* The chain: their words, the gap it reveals, what it leads to, what it costs.
+   One row per weak pillar, worst first. This is the argument the report makes,
+   drawn rather than described. */
+function exposureChains(){
+  const weak=report.pillars.filter(p=>p.score<7).sort((a,b)=>a.score-b.score);
+  if(!weak.length) return `<div class="card"><b>No pillar scored below 7.</b> There is no exposure chain to draw, which is the honest result here. The optimisation notes in Part 4 still apply.</div>`;
+  return `<div class="chains">${weak.map((p,i)=>{
+    const sc=PILLAR_SCALE[p.key]||{}, ev=evidenceFor(p);
+    const bench=sc.bench!=null?sc.bench:null, delta=bench!=null?(p.score-bench):null;
+    return `<div class="chain">
+      <div class="chainhead"><span class="cnum">${i+1}</span><b>${esc(p.name)}</b>
+        <span class="mono">${p.score}/10</span>
+        <span class="sev ${p.score<4?"hi":"md"}">${p.score<4?"Critical":"Material"}</span></div>
+      <div class="chainflow">
+        <div class="step"><b>You told us</b><span>${ev.quote?`&ldquo;${esc(ev.quote.answer)}&rdquo;`:esc(p.reason)}</span>${ev.quote?`<small>In answer to: ${esc(ev.quote.question)}</small>`:""}</div>
+        <div class="arrow" aria-hidden="true"></div>
+        <div class="step gap"><b>The gap that reveals</b><span>${esc(p.gap||p.reason)}</span></div>
+        <div class="arrow" aria-hidden="true"></div>
+        <div class="step"><b>Which leads to</b><span>${esc(p.consequence||consequenceFor(p))}</span></div>
+      </div>
+      <div class="chainwhy">
+        <div class="whycol"><b>Why it scored ${p.score}</b>
+          <ul>${ev.lines.map(l=>`<li>${l}</li>`).join("")}</ul>
+          ${bench!=null?`<p class="mini">${delta>=0?"Above":"Below"} the typical score of ${bench.toFixed(1)} by ${Math.abs(delta).toFixed(1)}. ${esc(sc.benchNote||"")}</p>`:""}
+        </div>
+        <div class="whycol"><b>Why this one matters</b>
+          <p>${esc(whyMatters(p))}</p>
+          <b style="margin-top:10px">What a 10 looks like here</b>
+          <p>${esc(sc.ten||"")}</p>
+          <b style="margin-top:10px">What would move this score</b>
+          <p>${esc(moverFor(p))}</p>
+        </div>
+      </div>
+    </div>`;}).join("")}</div>
+  <p class="note">Every chain starts with something you said, and each score names the answers behind it. Nothing here was assumed. What these gaps cost you is priced separately in Part 3, so the diagnosis stays clean of the money.</p>`;
+}
+function evidenceFor(p){
+  const ids=(p.source_questions||[]).filter(id=>state.answers[id]);
+  const lines=[], seen=[];
+  ids.forEach(id=>{
+    const a=state.answers[id]; if(!a) return;
+    seen.push(a);
+    if(a.unsure){ lines.push(`<i>${esc(a.question)}</i> answered as not known, which lowers the score honestly rather than guessing it upward.`); }
+    else { lines.push(`<i>${esc(a.question)}</i> &rarr; &ldquo;${esc(shortText(a.answer,18))}&rdquo;`); }
+  });
+  if(!lines.length) lines.push("Scored from the pattern across your answers rather than one single response.");
+  return {quote:seen.find(a=>!a.unsure)||null, lines};
+}
+function shortText(t,w){ const arr=String(t||"").split(/\s+/); return arr.length<=w?t:arr.slice(0,w).join(" ")+"..."; }
+function whyMatters(p){
+  const map={
+    resilience:"This pillar sets whether maintenance is possible at all. Until a component can be lost safely, patching, upgrades and capacity work all get postponed, which is how every other pillar quietly degrades.",
+    security:"Maintenance debt and security are the same problem seen from two sides. A system that cannot come down cannot be patched, and an unpatched system is the one an attacker reaches first.",
+    scale:"Scale problems arrive with success, not failure. The load that breaks an environment usually turns up in the same quarter as the growth everyone was celebrating, which is the worst moment to be discovering limits.",
+    ops:"Architecture is only as good as the people and process running it at 2am. Untested recovery and single points of knowledge turn a technical incident into a business one."};
+  return map[p.key]||"This pillar shapes how quickly an ordinary problem becomes a customer facing one.";
+}
+function moverFor(p){
+  const map={
+    resilience:"Exercise one failover for real on a low stakes workload, then repeat it on schedule. A failover that has fired is worth more than any amount of documented redundancy.",
+    security:"Pick the one system nobody dares patch and give it a maintenance path, even a slow one. That single change usually moves this pillar more than a new tool would.",
+    scale:"Model what happens at twice the load and put a number on cost per customer. Knowing the shape of the curve is most of the work.",
+    ops:"Run one restore test end to end with someone who did not build the system, and write down what they could not answer."};
+  return map[p.key]||"Test the assumption behind the weakest answer and document what you find.";
+}
+function quoteFor(p){
+  const ids=(p.source_questions||[]);
+  for(const id of ids){ const a=state.answers[id]; if(a&&!a.unsure) return a; }
+  const vals=Object.values(state.answers).filter(a=>!a.unsure);
+  return vals.length?vals[0]:null;
+}
+function consequenceFor(p){
+  const map={resilience:"An ordinary component failure becomes customer facing downtime, and recovery time is discovered during the incident rather than before it.",
+    security:"Unpatched systems stay reachable, which is the exact path ransomware takes into an environment that cannot take maintenance windows.",
+    scale:"Growth arrives as a cost surprise and a performance surprise at the same time, usually in the same quarter.",
+    ops:"Recovery depends on the availability of specific people, so the outage lasts as long as it takes to reach them."};
+  return map[p.key]||"Incidents take longer to resolve, and the cost lands as unplanned engineering time.";
+}
+/* The money view of the same gaps, kept entirely inside Part 3 so the
+   diagnosis in Part 2 stays clean of pricing. */
+function costByGap(){
+  const m=money(); if(!m||!m.hasMoney) return "";
+  const weak=report.pillars.filter(p=>p.score<7).sort((a,b)=>a.score-b.score);
+  if(!weak.length) return "";
+  const gaps=weak.map(p=>7-p.score), tot=gaps.reduce((a,b)=>a+b,0)||1;
+  return `<div class="rsec"><span class="eyebrow">Cost by gap</span>
+    <h2>Which gap carries which share of that number</h2>
+    <p style="font-size:13.5px;color:var(--muted)">The same gaps named in Part 2, now priced. Your ${fmt(m.bleedMonth)} a month split across them, weighted by how far each pillar sits below 7. A pillar at 3 carries twice the weight of one at 5.</p>
+    <div class="gapcost">${weak.map((p,i)=>{
+      const share=m.bleedMonth*(gaps[i]/tot), pct=Math.round(gaps[i]/tot*100);
+      return `<div class="gcrow">
+        <div class="gcname"><b>${esc(p.name)}</b><small>${esc(p.gap||p.reason)}</small></div>
+        <div class="gcbar"><i style="width:${pct}%"></i></div>
+        <div class="gcnum"><b>${fmt(share)}</b><small>${pct}% · ${fmt(share*12)}/yr</small></div>
+      </div>`;}).join("")}</div>
+    <div class="formula">HOW THE SPLIT WORKS · each pillar's distance below 7 is its weight. ${weak.map((p,i)=>`${esc(p.name)}: 7 &minus; ${p.score} = ${gaps[i].toFixed(1)}`).join(" · ")}. Total weight ${tot.toFixed(1)}. Each share is that weight ÷ ${tot.toFixed(1)} × ${fmt(m.bleedMonth)}. It is arithmetic from your own figures, not an opinion about which gap feels worse.</div>
+  </div>`;
 }
 function scaleStrip(){
   const c=report.computed;
@@ -776,13 +1192,13 @@ function scaleStrip(){
   <div class="scale" style="margin-top:34px;position:relative">
     <div class="you" style="left:${Math.min(97,Math.max(3,pos))}%">YOU · ${c.weakest_score}/10</div>
     <div class="scalebar"><span class="s-luck"></span><span class="s-exposed"></span><span class="s-hard"></span></div>
-    <div class="scalelabels"><div class="sl1"><b>Running on luck</b> · under 4 · ordinary failures become outages</div><div class="sl2"><b>Exposed in places</b> · 4 to 6.9 · known gaps, fixable in 90 days</div><div class="sl3"><b>Hardened</b> · 7+ · maintenance is a non event</div></div>
+    <div class="scalelabels"><div class="sl1"><b>Critical Exposure</b> · under 4 · ordinary failures become outages</div><div class="sl2"><b>Partially Resilient</b> · 4 to 6.9 · named gaps, addressable in 90 days</div><div class="sl3"><b>Resilient</b> · 7+ · maintenance is routine</div></div>
   </div>
   <div class="banddesc">${esc(c.rule)} ${c.next_band?`You are <b>${c.next_band.gap} points</b> on your weakest pillar from <b>${esc(c.next_band.name)}</b>.`:"You are in the top band; the roadmap below is about staying there and getting faster."} A 10 does not exist. The gap to 10 is the readiness gap the roadmap below closes.</div>
   <div style="margin-top:14px;font-size:13px;color:var(--muted)">
-    <div style="padding:5px 0"><b style="color:var(--red)">Running on luck:</b> environments with at least one layer that turns an ordinary failure into an outage, usually a failover that has never fired or patching that stopped.</div>
-    <div style="padding:5px 0"><b style="color:var(--amber)">Exposed in places:</b> where most growing SaaS platforms land on a first pass: the foundations exist, with one or two known gaps between them and boring reliability.</div>
-    <div style="padding:5px 0"><b style="color:var(--green)">Hardened:</b> rare first time out: pooling proven, failover exercised, maintenance routine, restores tested.</div>
+    <div style="padding:5px 0"><b style="color:var(--red)">Critical Exposure:</b> at least one layer turns an ordinary failure into a business affecting outage, most often a failover that has never been exercised or patching that has stalled.</div>
+    <div style="padding:5px 0"><b style="color:var(--amber)">Partially Resilient:</b> where most growing SaaS platforms land on a first pass: the foundations exist, with one or two known gaps between them and boring reliability.</div>
+    <div style="padding:5px 0"><b style="color:var(--green)">Resilient:</b> rare first time out: pooling proven, failover exercised, maintenance routine, restores tested.</div>
   </div></div>`;
 }
 function costSection(){
@@ -798,8 +1214,62 @@ function costSection(){
   }
   return `<div class="rsec"><span class="eyebrow">Section · The number</span><h2>What doing nothing costs, in your own figures</h2>
   <div class="kv">${cards}</div>
+  ${(function(){const b=(state.sizing&&state.sizing.bands)||{};const ks=Object.keys(b);
+    return ks.length?`<div class="formula">FROM THE RANGES YOU PICKED · ${ks.map(k=>{const f=SIZE_FIELDS.find(x=>x.k===k);return f?esc(f.label)+": "+esc(b[k]):"";}).filter(Boolean).join(" · ")}. We used the middle of each range. Set your exact figures below and every number here updates.</div>`:"";})()}
   ${m.revHr>0?`<div class="formula">HOW WE COMPUTED IT · revenue per working hour = ${fmt(s.revenue)} monthly revenue ÷ 160 working hours (40 hours × 4 weeks) = ${fmt(m.revHr)}/hour. Nothing here was invented; change the inputs and the outputs change.</div>`:""}
-  <p class="note">These are estimates from your own figures, not guarantees.</p></div>`;
+  <p class="note">These are estimates from your own figures, not guarantees.</p>
+  ${(function(){const u=(state.sizing&&state.sizing.unknown)||[];return u.length?`<div class="formula" style="border-left-color:#C24D3A">LEFT OUT ON PURPOSE · you marked ${u.length} figure${u.length>1?"s":""} as unknown: ${u.join(", ")}. ${u.length>1?"They are":"It is"} excluded from every number above rather than guessed, so the real cost is higher than shown. Fill ${u.length>1?"them":"it"} in below and the report updates.</div>`:""})()}
+  ${adjustPanel()}
+  </div>`;
+}
+/* Numbers stay theirs after the report is built: drag any input and every
+   money figure, chart and phase saving recomputes live. */
+function adjustPanel(){
+  const s=state.sizing||{};
+  const rows=SIZE_FIELDS.filter(f=>f.k!=="users").map(f=>{
+    const dk=!!s[f.k+"_dk"], v=dk?f.def:(s[f.k]||0);
+    return `<div class="szrow${dk?" unknown":""}" id="arow_${f.k}">
+      <div class="szhead"><label for="asl_${f.k}">${f.label}${dk?' <small>marked unknown, excluded from the maths</small>':''}</label>
+        <div class="szval"><input id="atx_${f.k}" inputmode="numeric" value="${szFmt(f,v)}" aria-label="${f.label}"></div></div>
+      <input class="szslide" type="range" id="asl_${f.k}" min="${f.min}" max="${f.max}" step="${f.step}" value="${v}" ${dk?"disabled":""}>
+      <div class="szfoot"><span>${szFmt(f,f.min)} to ${szFmt(f,f.max)}</span>
+        <label class="szdk"><input type="checkbox" id="adk_${f.k}" ${dk?"checked":""}> I don't know this</label></div>
+    </div>`;}).join("");
+  return `<details class="adjust" id="adjustBox"><summary>Those were ranges. Set your exact numbers and watch this update</summary>
+    <p class="note" style="margin:10px 0 14px">The figures above came from the ranges you picked, so they use the middle of each band. Drag any of them to your real number and every cost, chart and phase saving recomputes instantly. Nothing is saved anywhere until you send it to yourself.</p>
+    ${rows}
+    <div class="qactions"><button class="btn" onclick="applyAdjust()">Update my report</button>
+      <button class="unsure" onclick="resetAdjust()">Back to my original figures</button></div>
+  </details>`;
+}
+function wireAdjust(){
+  SIZE_FIELDS.filter(f=>f.k!=="users").forEach(f=>{
+    const sl=document.getElementById("asl_"+f.k), tx=document.getElementById("atx_"+f.k), dk=document.getElementById("adk_"+f.k);
+    if(!sl||!tx||!dk) return;
+    sl.addEventListener("input",()=>{ tx.value=szFmt(f,+sl.value); });
+    tx.addEventListener("focus",()=>{ tx.value=String(+sl.value); });
+    tx.addEventListener("blur",()=>{ const v=Math.max(f.min,Math.min(f.max,parseFloat(String(tx.value).replace(/[^0-9.]/g,""))||0));
+      sl.value=v; tx.value=szFmt(f,v); });
+    dk.addEventListener("change",()=>{ document.getElementById("arow_"+f.k).classList.toggle("unknown",dk.checked);
+      sl.disabled=dk.checked; tx.disabled=dk.checked; });
+  });
+}
+function applyAdjust(){
+  const out=Object.assign({},state.sizing,{skipped:false,unknown:[]});
+  SIZE_FIELDS.filter(f=>f.k!=="users").forEach(f=>{
+    const dk=document.getElementById("adk_"+f.k);
+    if(dk&&dk.checked){ out[f.k]=0; out[f.k+"_dk"]=true; out.unknown.push(f.label); }
+    else { out[f.k]=+document.getElementById("asl_"+f.k).value; delete out[f.k+"_dk"]; }
+  });
+  if(!state._origSizing) state._origSizing=Object.assign({},state.sizing);
+  state.sizing=out; saveState(); track("adjust_applied");
+  const wasFull=!document.body.classList.contains("short");
+  renderReport(); if(wasFull) setRead("full");
+  const b=document.getElementById("adjustBox"); if(b){ b.open=true; b.scrollIntoView({behavior:"smooth",block:"center"}); }
+}
+function resetAdjust(){
+  if(state._origSizing){ state.sizing=Object.assign({},state._origSizing); saveState(); track("adjust_reset");
+    const wasFull=!document.body.classList.contains("short"); renderReport(); if(wasFull) setRead("full"); }
 }
 function charts(){
   const m=money(); if(!m||(!m.hasMoney&&!m.hasHours)) return "";
@@ -850,16 +1320,67 @@ function partHead(n,title,desc){
   return `<div class="parthead"><div class="partnum">${n}</div><div><h2>${title}</h2><p>${desc}</p></div></div>`;
 }
 function bridge(t){ return `<p class="bridge">${t}</p>`; }
+/* THE SHORT VERSION · everything an executive needs, above the fold.
+   Built entirely from values already computed elsewhere, so it can never
+   contradict the body of the report. */
+function execSummary(){
+  const c=report.computed, m=money();
+  const weakest=(c.pillars||[]).slice().sort((a,b)=>a.score-b.score)[0];
+  const li=[];
+  li.push(`<li><b>Verdict:</b> ${esc(c.verdict)}${weakest?`, set by your weakest layer, ${esc(weakest.name)} at ${weakest.score}/10`:""}.</li>`);
+  if(report.blind_spot_short||report.blind_spot) li.push(`<li><b>The gap you have not named:</b> ${esc(short(report.blind_spot_short||report.blind_spot,26))}</li>`);
+  if(m) li.push(`<li><b>What that exposure costs:</b> about ${m.fmt(m.perMonth)} a month while it stays open, from the figures you gave us.</li>`);
+  if(report.first_move) li.push(`<li><b>Do this first:</b> ${esc(report.first_move)}</li>`);
+  if(report.focus&&report.focus.name) li.push(`<li><b>Where to start:</b> ${esc(report.focus.name)}${report.phases&&report.phases.length?`, phase one of a ${report.phases.length} phase 90 day plan`:""}.</li>`);
+  return `<div class="execbox"><span class="eyebrow">The short version</span>
+    <h2>If you read nothing else</h2>
+    <ul>${li.join("")}</ul>
+    <p class="note" style="margin:12px 0 0">Everything below is the working behind these five lines. Nothing new is introduced further down.</p>
+  </div>`;
+}
+function short(t,words){
+  if(!t) return "";
+  const w=String(t).split(/\s+/);
+  return w.length<=words ? t : w.slice(0,words).join(" ").replace(/[,.;:]$/,"")+"...";
+}
+/* Tag Part 3 onwards as detail. Done in the DOM rather than in the template
+   string so the parts stay siblings (build hygiene: no nesting). */
+function tagDetail(){
+  const R=document.getElementById("fullReport");
+  if(!R) return;
+  let on=false;
+  Array.from(R.children).forEach(el=>{
+    const num=el.querySelector&&el.querySelector(".partnum");
+    if(num&&parseInt(num.textContent,10)>=4) on=true;
+    if(el.classList&&el.classList.contains("closing")) on=false;   /* CTA always visible */
+    if(on&&el.classList) el.classList.add("detailonly");
+  });
+}
+function setRead(mode){
+  document.body.classList.toggle("short", mode==="short");
+  document.getElementById("rmShort").classList.toggle("on", mode==="short");
+  document.getElementById("rmFull").classList.toggle("on", mode!=="short");
+  track("readmode",{mode});
+  if(mode==="full"){ const el=document.querySelector(".parthead"); if(el) el.scrollIntoView({behavior:"smooth",block:"start"}); }
+}
 function renderReport(){
   const c=report.computed;
   const sa=report.shadow_ai||null;
   const R=document.getElementById("fullReport");
   R.innerHTML=`
-  <div class="card" style="margin-top:22px"><span class="eyebrow">How this report fits together</span>
+  ${execSummary()}
+  <div class="readmode">
+    <b>How much do you want?</b>
+    <button class="rm on" id="rmShort" role="button" onclick="setRead('short')">The short version</button>
+    <button class="rm" id="rmFull" role="button" onclick="setRead('full')">The full report</button>
+    <small>The short version is the verdict, your gaps and what they cost: about a minute. The full report adds the service map, the 90 day plan and the working behind every number.</small>
+  </div>
+
+  <div class="card detailonly" style="margin-top:22px"><span class="eyebrow">How this report fits together</span>
     <div class="mapstrip" style="margin-top:8px">
       <div><b>The verdict.</b> Your infrastructure scored across four pillars, and where you sit on the scale.</div>
-      <div><b>The cost.</b> What the gaps stay costing you every month, in your own figures.</div>
-      <div><b>The exposure.</b> The specific risks your answers point at, including the one you have not named.</div>
+      <div><b>The exposure.</b> The specific gaps your answers point at, including the one you have not named.</div>
+      <div><b>The financial implications.</b> All the money in one place: the monthly cost, the share each gap carries, and the return.</div>
       <div><b>The map.</b> Every challenge matched to the Protected Harbor service accountable for fixing it.</div>
       <div><b>The plan.</b> One initiative first, the maths behind choosing it, and 90 days sequenced.</div>
       <div><b>The receipts.</b> Where every answer you gave went, so you can check our working.</div>
@@ -870,36 +1391,34 @@ function renderReport(){
   ${scaleStrip()}
   ${pillarBars(false)}
   ${report.first_move?`<div class="card" style="border-left:4px solid var(--orange);border-radius:0 18px 18px 0"><b>${esc(c.verdict)}, so before anything else:</b> ${esc(report.first_move)}</div>`:""}
-  ${bridge("That is where you stand. Next: what standing still costs.")}
+  ${bridge("That is where you stand. Next: the gaps behind that score.")}
 
-  ${partHead(2,"The cost","What the gaps in Part 1 cost while they stay open. Every figure here is computed from the numbers you gave, never invented.")}
-  <div class="rsec"><span class="eyebrow">Painkiller or vitamin</span>
-    <h2>Is this bleeding now, or insurance for later?</h2>
-    <div class="card"><b>${esc(report.painkiller.label)}.</b> ${esc(report.painkiller.reason)}
-    <p class="note">A painkiller closes a wound that is bleeding now. A vitamin is insurance for later. We tell you which this is so the urgency is honest, in either direction.</p></div>
+  ${partHead(2,"The exposure","The gaps your answers point at, what each one leads to, and why each scored the way it did. No money in this part: the diagnosis stands on its own, and Part 3 prices it.")}
+  <div class="rsec"><span class="eyebrow">The chain, from your answer to the cost</span>
+    <h2>What you told us, what it exposes, and what it costs</h2>
+    <p style="font-size:13.5px;color:var(--muted)">One chain per pillar scoring under 7, worst first. Read left to right: your own answer, the gap it reveals, what that leads to in practice, and the share of your monthly cost it carries.</p>
+    ${exposureChains()}
   </div>
-  ${costSection()}
-  ${report.return_source?`<div class="rsec"><span class="eyebrow">Where the return comes from</span>
-    <h2>What you get back when it is fixed</h2>
-    <div class="card">${esc(report.return_source)}</div>
-  </div>`:""}
-  ${bridge("A cost keeps growing when risk compounds. Part 3 names the risks doing the compounding.")}
-
-  ${partHead(3,"The exposure","The specific risks your answers point at. Each one traces back to a pillar score in Part 1, and each one has a mapped fix in Part 4.")}
   <div class="rsec"><span class="eyebrow">The blind spot</span>
     <h2>The one thing you're not seeing</h2>
     <p style="font-size:13.5px;color:var(--muted)">Every report names one risk the reader did not raise themselves. This is yours.</p>
-    <div class="card" style="border-left:4px solid var(--amber)">${esc(report.blind_spot)}</div>
+    <div class="card" style="border-left:4px solid var(--amber)">${esc(report.blind_spot)}
+      <div class="why2"><b>Why we call this a blind spot rather than a risk</b><p>A risk is something you have already named and decided to live with. A blind spot is a risk your own answers describe without either of us stating it out loud, which is why it is drawn from what you said rather than from a standard list. It sits here, before the money, because a blind spot changes what the rest of the report means: if this one is true, several of the scores above are optimistic rather than wrong.</p></div>
+    </div>
   </div>
   <div class="rsec"><span class="eyebrow">Ransomware and maintenance debt</span>
     <h2>What can't be patched is what gets attacked</h2>
     <p style="font-size:13.5px;color:var(--muted)">This is your Security and maintenance debt pillar, unpacked: your patch reality and what that class of gap has historically meant.</p>
-    <div class="card">${esc(report.ransomware_exposure)}</div>
+    <div class="card">${esc(report.ransomware_exposure)}
+      <div class="why2"><b>The reasoning</b><p>Attackers rarely need a new exploit. They need an old one that is still open, and the systems that stay open are the ones nobody can take down. That is why maintenance capability and security exposure are the same measurement read twice: every week a system cannot be patched is a week its known vulnerabilities stay reachable. The question is never whether the patch exists, it is whether the environment can absorb the downtime to apply it.</p></div>
+    </div>
   </div>
   <div class="rsec"><span class="eyebrow">The Frankenstein check</span>
     <h2>Connected systems, or bolted on limbs? ${riskBadge(report.frankenstein_risk)}</h2>
     <p style="font-size:13.5px;color:var(--muted)">Our name for what happens when tools and responsibilities get bolted on one at a time until nothing talks to anything. This checks whether your environment works as one design or as stitched together parts.</p>
-    <div class="card">${esc(report.frankenstein)}</div>
+    <div class="card">${esc(report.frankenstein)}
+      <div class="why2"><b>The reasoning</b><p>Environments rarely fail at the components. They fail at the seams between them, and seams are what accumulate when each addition is solved on its own terms. The symptom to watch for is ownership: when every specialist can explain their slice and nobody can explain the whole, the gaps sit precisely where no one is looking. That is also why adding another tool tends to make it worse rather than better.</p></div>
+    </div>
   </div>
   ${sa&&sa.text?`<div class="rsec"><span class="eyebrow">Shadow AI exposure</span>
     <h2>The AI use nobody signed off ${riskBadge(sa.level)}</h2>
@@ -909,9 +1428,25 @@ function renderReport(){
   <div class="rsec"><span class="eyebrow">AI readiness</span>
     <h2>Can your infrastructure carry your AI ambitions?</h2>
     <p style="font-size:13.5px;color:var(--muted)">Why this sits in an infrastructure report: you cannot have AI without infrastructure. AI amplifies whatever foundation it sits on, so the pillar scores in Part 1 are also your AI readiness scores. This section says what that means for the AI the business is asking for.</p>
-    <div class="card">${esc(report.ai_readiness)}</div>
+    <div class="card">${esc(report.ai_readiness)}
+      <div class="why2"><b>The reasoning</b><p>AI workloads are unusually unforgiving of the two things this audit measures: data that is collected but not queryable, and platforms that cannot absorb sudden load. Neither shows up in a proof of concept, because a proof of concept runs on a laptop with clean data. Both show up the week it goes to production. The order matters, so the weakest pillar gets closed first, otherwise the AI initiative inherits the same gap and fails faster than the thing it replaced.</p></div>
+    </div>
   </div>
-  ${bridge("Every risk above is a challenge with a mapped fix. Part 4 draws the map.")}
+  ${bridge("That is the diagnosis, on its own terms. Part 3 now puts your own figures against it.")}
+
+  ${partHead(3,"The financial implications","Every financial implication in one place: what the exposure in Part 2 costs while it stays open, which gap carries which share, and what you get back when it is closed. Every figure is computed from the numbers you gave, never invented.")}
+  <div class="rsec"><span class="eyebrow">Painkiller or vitamin</span>
+    <h2>Is this bleeding now, or insurance for later?</h2>
+    <div class="card"><b>${esc(report.painkiller.label)}.</b> ${esc(report.painkiller.reason)}
+    <p class="note">A painkiller closes a wound that is bleeding now. A vitamin is insurance for later. We tell you which this is so the urgency is honest, in either direction.</p></div>
+  </div>
+  ${costSection()}
+  ${costByGap()}
+  ${report.return_source?`<div class="rsec"><span class="eyebrow">Where the return comes from</span>
+    <h2>What you get back when it is fixed</h2>
+    <div class="card">${esc(report.return_source)}</div>
+  </div>`:""}
+  ${bridge("Every exposure above is a challenge with a mapped fix. Part 4 draws the map.")}
 
   ${partHead(4,"The map: every challenge to its fix","Each challenge you named, or the scorecard flagged, matched to the Protected Harbor service accountable for it. Today these are split across a storage person, a Windows person and a cloud bill nobody owns. This is what one accountable partner for performance, security and costs looks like.")}
   <div class="rsec">
@@ -978,13 +1513,14 @@ function renderReport(){
     <p class="note">Published industry research, not generated numbers.</p>
   </div>
 
-  <div class="ctabox">
+  <div class="ctabox closing">
     <span class="eyebrow" style="color:var(--orange-l)">The next step</span>
     <h2>A free working session, not a sales call</h2>
     <p>Current state on one side of the whiteboard, future state on the other${(function(){const m=money();return m&&m.hasMoney?", and the "+fmt(m.bleedMonth)+"/month between them":""})()}. Bring your business leaders, not just IT: this is a business conversation with engineering underneath.</p>
     <a class="btn" href="${CALENDLY}" target="_blank" rel="noopener" onclick="track('cta_click')">Book the working session</a>
     <div class="actions">
       <button class="btn ghost sm" id="emailBtn" onclick="resendEmail()">Email me this report</button>
+      <button class="btn ghost sm" onclick="downloadReport()">Download the full report</button>
       <button class="btn ghost sm" onclick="onePager()">Download one pager</button>
       <button class="btn ghost sm" onclick="shareWA()">Share summary on WhatsApp</button>
       <button class="btn ghost sm" onclick="window.print()">Print / save PDF</button>
@@ -997,8 +1533,10 @@ function renderReport(){
   <div class="rsec"><span class="eyebrow">Appendix</span>
     <h2>How to read this report</h2>
     <div class="gloss"><dl>
-      <dt>The six parts</dt><dd>Part 1 scores you, Part 2 prices the gaps, Part 3 names the risks, Part 4 maps every challenge to its fix, Part 5 sequences the fixes, and Part 6 shows the working.</dd>
-      <dt>The verdict (Hardened / Exposed in places / Running on luck)</dt><dd>Computed from your weakest pillar, never averaged up: weakest pillar 7+ is Hardened, 4 to 6.9 is Exposed in places, under 4 is Running on luck.</dd>
+      <dt>The six parts</dt><dd>Part 1 scores you, Part 2 names the gaps, Part 3 prices them, Part 4 maps every challenge to its fix, Part 5 sequences the fixes, and Part 6 shows the working.</dd>
+      <dt>The verdict (Resilient / Partially Resilient / Critical Exposure)</dt><dd>Computed from your weakest pillar, never averaged up: weakest pillar 7+ is Resilient, 4 to 6.9 is Partially Resilient, under 4 is Critical Exposure.</dd>
+      <dt>Typical score</dt><dd>Protected Harbor's working benchmark for mid market SaaS environments on each pillar, shown as a marker on the bar so you can place yourself rather than read a score in isolation. It is a practitioner benchmark, not published research.</dd>
+      <dt>The chain</dt><dd>One row per pillar scoring under 7: your own answer, the gap it reveals, what that leads to operationally, and the share of your monthly cost it carries. The split is weighted by how far each pillar sits below 7.</dd>
       <dt>The four pillars</dt><dd>Resilience and availability; Security and maintenance debt; Scalability, performance and cost; Operational readiness. Each scored 0 to 10 from your answers. Readiness % is simply their average.</dd>
       <dt>Painkiller vs vitamin</dt><dd>Whether infrastructure is a wound bleeding now or insurance for later. It sets the honest urgency.</dd>
       <dt>The blind spot</dt><dd>The one risk your answers point at that you did not name yourself.</dd>
@@ -1011,6 +1549,9 @@ function renderReport(){
     <div class="footer-honest">This report was generated from the answers provided, scored against Protected Harbor's resilience methodology. It is honest by design: if it says you are in good shape, you are. Forward it freely; the glossary above travels with it.</div>
   </div>`;
   refreshEmailBtn();
+  tagDetail();
+  wireAdjust();
+  document.body.classList.add("short");
 }
 function refreshEmailBtn(){
   const b=document.getElementById("emailBtn"); if(!b) return;
@@ -1026,7 +1567,8 @@ async function resendEmail(){
   try{
     const r=await fetch("/api/lead",{method:"POST",headers:{"Content-Type":"application/json"},
       body:JSON.stringify({email,resend:true,role:state.role,industry:state.industry,
-        headline:report.headline,verdict:report.computed.verdict,report_html:emailHTML()})});
+        headline:report.headline,verdict:report.computed.verdict,report_html:emailHTML(),
+      delivery:HOLD_REPORT?"held_for_post_podcast":"instant",send_to_prospect:!HOLD_REPORT})});
     const d=await r.json();
     if(d.emailed){ window._emailed=true; refreshEmailBtn(); return; }
   }catch(e){}
@@ -1039,6 +1581,48 @@ function summaryText(){
     `${report.headline} Take the audit: ${location.origin}`;
 }
 function shareWA(){ track("share_wa"); window.open("https://wa.me/?text="+encodeURIComponent(summaryText()),"_blank"); }
+/* Download the report as it looks on screen: the real styles, the real
+   layout, everything expanded, interactive controls stripped out. Saves as a
+   standalone HTML file that opens in any browser and prints clean to PDF. */
+function downloadReport(){
+  track("download_report");
+  const styles=Array.from(document.querySelectorAll("style")).map(s=>s.outerHTML).join("\n");
+  const clone=document.getElementById("fullReport").cloneNode(true);
+  /* strip anything interactive or screen only */
+  clone.querySelectorAll(".adjust,.readmode,.actions,#previewBar,button,.mic").forEach(el=>el.remove());
+  clone.querySelectorAll(".detailonly").forEach(el=>el.classList.remove("detailonly"));
+  const when=new Date().toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"});
+  const html=`<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Infrastructure Resilience Report · ${esc(state.company||"Protected Harbor")}</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&family=Mulish:wght@400;600;700&display=swap" rel="stylesheet">
+${styles}
+<style>
+  body{background:var(--cream,#FBF6F0);padding:0}
+  .dlhead{background:#22333D;color:#fff;padding:26px 28px}
+  .dlhead .k{font-size:11px;letter-spacing:2.4px;color:#F0995B;font-weight:700}
+  .dlhead h1{font-size:26px;margin:8px 0 4px;color:#fff}
+  .dlhead p{color:#C8D2D8;font-size:13.5px;margin:0}
+  .dlwrap{max-width:860px;margin:0 auto;padding:0 20px 60px}
+  .dlfoot{max-width:860px;margin:0 auto;padding:18px 20px 40px;font-size:12px;color:#5E6B75;border-top:1px solid #E7DCCE}
+  a[href]{color:#C2621F}
+  @media print{ .dlhead{-webkit-print-color-adjust:exact;print-color-adjust:exact} body{background:#fff} }
+</style></head><body>
+<div class="dlhead"><div class="dlwrap" style="padding-bottom:0">
+  <div class="k">PROTECTED HARBOR · INFRASTRUCTURE RESILIENCE AUDIT</div>
+  <h1>${esc(report.headline||"Your resilience report")}</h1>
+  <p>Prepared ${when}${state.company?" for "+esc(state.company):""} · from the answers given, scored against Protected Harbor's resilience methodology</p>
+</div></div>
+<div class="dlwrap">${clone.innerHTML}</div>
+<div class="dlfoot">Honest by design: if this report says you are in good shape, you are. Every money figure was computed from the figures provided, never invented. Forward freely, the glossary travels with it. Protected Harbor · protectedharbor.com</div>
+</body></html>`;
+  const blob=new Blob([html],{type:"text/html;charset=utf-8"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download=`Infrastructure-Resilience-Report${state.company?"-"+String(state.company).replace(/[^a-z0-9]+/gi,"-"):""}.html`;
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1500);
+}
 function onePager(){
   track("one_pager");
   const c=report.computed,m=money();
@@ -1060,7 +1644,7 @@ function onePager(){
   <h2>90 day plan</h2>
   ${report.roadmap.map(p=>`<div style="margin-bottom:6px"><b>${esc(p.days)}: ${esc(p.title)}</b> (${esc(p.effort)}, ${esc(p.service)})${m&&m.hasMoney?` · ≈ ${fmt(m.bleedMonth*p.recovery_pct/100)}/mo recovered (est.)`:""}</div>`).join("")}
   <h2>12 month goal, in their words</h2><div>&ldquo;${esc(state.goal)}&rdquo;</div>
-  <div class="foot"><b>How to read this:</b> verdict follows the weakest of four pillars (7+ Hardened · 4 to 6.9 Exposed in places · under 4 Running on luck). Readiness % is the pillar average. All money figures are computed from the figures provided by the reader's own team (monthly revenue ÷ 160 working hours × outage exposure, plus stated firefighting hours × their stated rate) — estimates, not guarantees. Next step: a free working session, current state vs future state. ${CALENDLY}</div>
+  <div class="foot"><b>How to read this:</b> verdict follows the weakest of four pillars (7+ Resilient · 4 to 6.9 Partially Resilient · under 4 Critical Exposure). Readiness % is the pillar average. All money figures are computed from the figures provided by the reader's own team (monthly revenue ÷ 160 working hours × outage exposure, plus stated firefighting hours × their stated rate) — estimates, not guarantees. Next step: a free working session, current state vs future state. ${CALENDLY}</div>
   <script>window.print()<\/script></body></html>`);
   w.document.close();
 }
@@ -1076,7 +1660,7 @@ function emailHTML(){
   <p><b>90 day roadmap:</b></p>
   <ol>${report.roadmap.map(p=>`<li><b>${esc(p.days)}: ${esc(p.title)}</b> (${esc(p.effort)} effort, done by ${esc(p.service)}). ${esc(p.what)}</li>`).join("")}</ol>
   <p>${esc(report.goal_tieback)}</p>
-  <p style="font-size:12px;color:#5a6b76"><b>How to read this:</b> the verdict follows the weakest pillar (7+ Hardened, 4 to 6.9 Exposed in places, under 4 Running on luck). All money figures are computed from the figures you provided, never invented. Forward freely.</p>`;
+  <p style="font-size:12px;color:#5a6b76"><b>How to read this:</b> the verdict follows the weakest pillar (7+ Resilient, 4 to 6.9 Partially Resilient, under 4 Critical Exposure). All money figures are computed from the figures you provided, never invented. Forward freely.</p>`;
 }
 
 /* ------------------------------------------------ voice input */
@@ -1095,6 +1679,7 @@ function wireMic(btnId, taId){
     rec.start();
   };
 }
+document.getElementById("qAnswer").addEventListener("input",onTypedAnswer);
 wireMic("micBtn","qAnswer"); wireMic("micBtn2","fuAnswer"); wireMic("micBtn3","goalAnswer");
 checkResume();
 track("pageview",{consultant:CONSULTANT});
