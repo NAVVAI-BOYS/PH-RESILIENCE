@@ -16,6 +16,23 @@ Same architecture as AUDIT-LITE. Flask + single page frontend, deploy to Render.
    - FROM_EMAIL         e.g. "Protected Harbor Resilience Audit <info@navvai.com>" (domain must be verified in Resend)
    - NOTIFY_EMAIL       internal lead copy, default info@navvai.com
    - CALENDLY_URL       the booking link used in the CTA and emails
+   - BASE_URL           public URL used in the "View your full report" email link,
+                        e.g. https://protectedharboraudit.com (falls back to the request host)
+   - DATA_DIR           optional. Point at a Render Disk mount (e.g. /var/data) so leads and
+                        hosted reports survive redeploys. Defaults to ./data next to app.py.
+
+## Report delivery (email, hosted link, PDF)
+- On gate unlock the browser posts the lead straight away (stage "capture") with the report
+  exactly as rendered on screen. It is stored at data/reports/<id>.html and served at /r/<id>.
+- The browser then builds a PDF of that same page (html2canvas + jsPDF, page breaks never cut
+  through a line or a bar) and posts it (stage "send"). The prospect gets a short branded
+  email: verdict at a glance, "View your full report" button to /r/<id>, PDF attached.
+  The internal copy to NOTIFY_EMAIL carries the same link and attachment.
+- If the PDF cannot be built (old browser, CDN blocked, timeout) the email still goes out with
+  the link only. "Download the full report (PDF)" on screen uses the same generator, and falls
+  back to a standalone HTML file that prints clean.
+- /r/<id>.pdf serves the stored PDF; the hosted page shows a "Download PDF" button when it exists.
+- Report ids are unguessable (secrets.token_urlsafe) and pages are marked noindex.
 
 ## Modes
 - Prospect mode: /            (email gated, teaser above the gate)
@@ -28,8 +45,10 @@ Same architecture as AUDIT-LITE. Flask + single page frontend, deploy to Render.
 - Every AI call logs duration, output size and stop reason to Render logs.
 
 ## Known gaps (carry-overs from AUDIT-LITE, close before real volume)
-- Storage is data/*.json on local disk: Render free tier disk is ephemeral, so add a Render Disk
-  or move leads to persistent storage before the sprint.
+- Storage is data/*.json plus data/reports/ on local disk: Render free tier disk is ephemeral, so
+  add a Render Disk and set DATA_DIR to its mount path before the sprint. Without it, hosted
+  report links stop working after a redeploy (the PDF in the email is unaffected and the link
+  page explains how to get a new copy).
 - Rate limiting is basic in-memory per IP.
 
 ## Before shipping to Protected Harbor

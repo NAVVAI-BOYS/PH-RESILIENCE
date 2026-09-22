@@ -20,15 +20,17 @@ Env vars (set on Render):
   CALENDLY_URL        booking link used in emails + report CTA
 """
 
+import base64
 import json
 import os
 import re
+import secrets
 import time
 import threading
 from datetime import datetime, timezone
 
 import requests
-from flask import Flask, jsonify, render_template, request, Response
+from flask import Flask, jsonify, render_template, request, Response, abort
 
 app = Flask(__name__)
 
@@ -45,10 +47,18 @@ NOTIFY_EMAIL = os.environ.get("NOTIFY_EMAIL", "info@navvai.com")
 CALENDLY_URL = os.environ.get("CALENDLY_URL", "https://calendly.com/navvai")
 CONTACT_EMAIL = os.environ.get("CONTACT_EMAIL", "info@navvai.com")
 
-DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+# DATA_DIR can point at a Render Disk mount so leads and hosted reports survive
+# redeploys (e.g. DATA_DIR=/var/data). Defaults to ./data next to app.py.
+DATA_DIR = os.environ.get("DATA_DIR") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 LEADS_PATH = os.path.join(DATA_DIR, "leads.json")
 EVENTS_PATH = os.path.join(DATA_DIR, "events.json")
-os.makedirs(DATA_DIR, exist_ok=True)
+REPORTS_DIR = os.path.join(DATA_DIR, "reports")
+os.makedirs(REPORTS_DIR, exist_ok=True)
+# Public base URL used in emails for the hosted report link. Falls back to the
+# request host, so it only needs setting if the app sits behind a proxy.
+BASE_URL = os.environ.get("BASE_URL", "").rstrip("/")
+# Reports carry a PDF, so the lead payload can be a few MB.
+app.config["MAX_CONTENT_LENGTH"] = 30 * 1024 * 1024
 
 _lock = threading.Lock()
 
@@ -386,19 +396,141 @@ def api_analyze():
 # ---------------------------------------------------------------- leads
 
 
-def send_resend(to, subject, html):
+def send_resend(to, subject, html, attachments=None):
+    """attachments: list of {"filename": str, "content": base64 str}."""
     if not RESEND_API_KEY:
         return False, "resend not configured"
+    payload = {"from": FROM_EMAIL, "to": [to], "subject": subject, "html": html}
+    if attachments:
+        payload["attachments"] = attachments
     r = requests.post(
         "https://api.resend.com/emails",
         headers={"Authorization": f"Bearer {RESEND_API_KEY}", "Content-Type": "application/json"},
-        json={"from": FROM_EMAIL, "to": [to], "subject": subject, "html": html},
-        timeout=30,
+        json=payload,
+        timeout=60,
     )
     ok = r.status_code in (200, 201)
     if not ok:
         app.logger.error("resend %s: %s", r.status_code, r.text[:300])
     return ok, r.text[:200]
+
+
+# ---------------------------------------------------------------- hosted reports
+
+
+def _esc(t):
+    return (str(t or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))
+
+
+def _report_paths(rid):
+    if not re.match(r"^[A-Za-z0-9_-]{8,32}$", rid or ""):
+        return None, None
+    return os.path.join(REPORTS_DIR, rid + ".html"), os.path.join(REPORTS_DIR, rid + ".pdf")
+
+
+def _base_url():
+    return BASE_URL or request.url_root.rstrip("/")
+
+
+def _save_report(rid, report_doc, pdf_b64):
+    html_path, pdf_path = _report_paths(rid)
+    if report_doc:
+        with open(html_path, "w", encoding="utf-8") as f:
+            f.write(report_doc)
+    if pdf_b64:
+        try:
+            raw = base64.b64decode(pdf_b64.split(",")[-1], validate=False)
+            if raw[:4] == b"%PDF":
+                with open(pdf_path, "wb") as f:
+                    f.write(raw)
+                return raw
+        except Exception as e:
+            app.logger.error("pdf decode failed: %s", e)
+    return None
+
+
+def _company_slug(company):
+    slug = re.sub(r"[^A-Za-z0-9]+", "-", company or "").strip("-")
+    return f"Infrastructure-Resilience-Report{'-' + slug if slug else ''}.pdf"
+
+
+def prospect_email(first, summary, report_url, has_pdf):
+    """Short, branded email: the verdict at a glance, one button to the hosted
+    report (which looks exactly as it did on screen), PDF attached."""
+    sm = summary or {}
+    verdict = sm.get("verdict") or ""
+    vkey = sm.get("verdict_key") or ""
+    vcol = {"hardened": "#3E9C6E", "luck": "#C4472F"}.get(vkey, "#DD7A36")
+    rows = []
+    if verdict:
+        rows.append(("Verdict", f'<span style="display:inline-block;background:{vcol};color:#fff;font-weight:700;padding:4px 12px;border-radius:999px;font-size:13px">{_esc(verdict)}</span>'))
+    if sm.get("weakest_pillar"):
+        rows.append(("Weakest layer", f"{_esc(sm['weakest_pillar'])} &middot; {_esc(sm.get('weakest_score'))}/10"))
+    if sm.get("readiness_pct") not in (None, ""):
+        rows.append(("Overall readiness", f"{_esc(sm['readiness_pct'])}% (average of the four pillars)"))
+    if sm.get("cost_month"):
+        rows.append(("Cost of doing nothing", f"{_esc(sm['cost_month'])} a month, from your own figures"))
+    table = "".join(
+        f'<tr><td style="padding:9px 0;border-bottom:1px solid #EFE2D4;color:#61707A;font-size:13px;width:44%;vertical-align:top">{k}</td>'
+        f'<td style="padding:9px 0;border-bottom:1px solid #EFE2D4;color:#12222E;font-size:14px;font-weight:600;vertical-align:top">{v}</td></tr>'
+        for k, v in rows)
+    pdf_line = ("Your PDF copy is attached, so it can be forwarded internally without a link."
+                if has_pdf else "Forward the link freely: the glossary travels with the report.")
+    return f"""<!DOCTYPE html><html><body style="margin:0;padding:24px 12px;background:#FBF6F0">
+<div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:auto;color:#12222E">
+  <div style="background:#22333D;color:#fff;padding:26px 28px;border-radius:16px 16px 0 0">
+    <div style="font-size:11px;letter-spacing:2.4px;color:#F0995B;font-weight:700">PROTECTED HARBOR &middot; INFRASTRUCTURE RESILIENCE AUDIT</div>
+    <h1 style="margin:10px 0 0;font-size:22px;line-height:1.3;color:#fff">{_esc(sm.get('headline') or 'Your resilience report is ready')}</h1>
+  </div>
+  <div style="background:#fff;border:1px solid #EFE2D4;border-top:0;padding:26px 28px;border-radius:0 0 16px 16px">
+    <p style="margin:0 0 16px;font-size:15px;line-height:1.55">Hi{(' ' + _esc(first)) if first else ''},</p>
+    <p style="margin:0 0 18px;font-size:15px;line-height:1.55">Thanks for taking the audit. Here is your verdict at a glance. The full report, presented exactly as it was on screen, is one tap away.</p>
+    <table cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin:0 0 22px">{table}</table>
+    {f'<p style="margin:0 0 22px;font-size:14px;line-height:1.55;color:#33434D">{_esc(sm.get("verdict_meaning"))}</p>' if sm.get("verdict_meaning") else ''}
+    <div style="text-align:center;margin:8px 0 12px">
+      <a href="{report_url}" style="display:inline-block;background:#DD7A36;color:#fff;padding:14px 30px;border-radius:999px;text-decoration:none;font-weight:700;font-size:15px">View your full report</a>
+    </div>
+    <p style="text-align:center;margin:0 0 26px;font-size:12.5px;color:#61707A;line-height:1.5">{pdf_line}</p>
+    <div style="border-top:1px solid #EFE2D4;padding-top:20px">
+      <p style="margin:0 0 6px;font-size:15px;font-weight:700">The next step: a free working session, not a sales call</p>
+      <p style="margin:0 0 14px;font-size:14px;line-height:1.55;color:#33434D">Current state on one side of the whiteboard, future state on the other. Bring your business leaders, not just IT.</p>
+      <a href="{CALENDLY_URL}" style="display:inline-block;border:2px solid #22333D;color:#22333D;padding:10px 22px;border-radius:999px;text-decoration:none;font-weight:700;font-size:14px">Book the working session</a>
+    </div>
+  </div>
+  <p style="text-align:center;font-size:11.5px;color:#8A959D;margin:18px 0 0;line-height:1.5">Honest by design: if this report says you are in good shape, you are. Every money figure was computed from the figures you provided, never invented.<br>Protected Harbor &middot; protectedharbor.com</p>
+</div></body></html>"""
+
+
+@app.route("/r/<rid>")
+def hosted_report(rid):
+    html_path, pdf_path = _report_paths(rid)
+    if not html_path or not os.path.exists(html_path):
+        return Response(
+            "<!DOCTYPE html><html><body style=\"font-family:Arial,sans-serif;max-width:560px;margin:80px auto;padding:0 20px;color:#12222E;line-height:1.55\">"
+            "<div style=\"font-size:11px;letter-spacing:2px;color:#C2621F;font-weight:700\">PROTECTED HARBOR</div>"
+            "<h1 style=\"font-size:22px\">This report link is no longer available</h1>"
+            "<p>The PDF copy attached to your email is the same report. If you no longer have it, you can "
+            f"<a href=\"{_base_url()}/\" style=\"color:#C2621F\">retake the audit</a> in about ten minutes, or write to "
+            f"<a href=\"mailto:{CONTACT_EMAIL}\" style=\"color:#C2621F\">{CONTACT_EMAIL}</a>.</p></body></html>",
+            status=404, mimetype="text/html")
+    with open(html_path, "r", encoding="utf-8") as f:
+        doc = f.read()
+    # If the PDF was stored, the page offers it directly instead of print to PDF.
+    if os.path.exists(pdf_path):
+        doc = doc.replace('<button onclick="window.print()">Save as PDF</button>',
+                          f'<a href="/r/{rid}.pdf" download style="display:inline-block;font:600 13px Poppins,Arial,sans-serif;background:#fff;border:1.5px solid #22333D;color:#22333D;border-radius:999px;padding:8px 16px;text-decoration:none">Download PDF</a>')
+    return Response(doc, mimetype="text/html", headers={"X-Robots-Tag": "noindex"})
+
+
+@app.route("/r/<rid>.pdf")
+def hosted_report_pdf(rid):
+    _, pdf_path = _report_paths(rid)
+    if not pdf_path or not os.path.exists(pdf_path):
+        abort(404)
+    with open(pdf_path, "rb") as f:
+        return Response(f.read(), mimetype="application/pdf",
+                        headers={"Content-Disposition": "inline; filename=Infrastructure-Resilience-Report.pdf",
+                                 "X-Robots-Tag": "noindex"})
 
 
 @app.route("/api/lead", methods=["POST"])
@@ -409,6 +541,8 @@ def api_lead():
     email = (d.get("email") or "").strip()
     if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email):
         return jsonify({"error": "email"}), 400
+    # Reuse the report id on a resend so the link in every email is the same one.
+    rid = d.get("report_id") if _report_paths(d.get("report_id") or "")[0] else secrets.token_urlsafe(9)
     lead = {
         "ts": datetime.now(timezone.utc).isoformat(),
         "email": email,
@@ -419,42 +553,58 @@ def api_lead():
         "headline": d.get("headline"), "verdict": d.get("verdict"),
         "resend": bool(d.get("resend")),
         "delivery": d.get("delivery") or "instant",
+        "report_id": rid,
     }
-    if not lead["resend"]:
+    report_url = f"{_base_url()}/r/{rid}"
+    # Two stage flow from the client: "capture" logs the lead and stores the
+    # hosted copy the moment the gate is unlocked (so closing the tab loses
+    # nothing), then "send" arrives a few seconds later with the PDF and
+    # triggers the emails. A request with no stage does both at once.
+    stage = d.get("stage") or "both"
+    if stage in ("capture", "both") and not lead["resend"]:
         _append(LEADS_PATH, lead)
-        app.logger.info("LEAD %s | %s | %s | %s", email, lead["company"], lead["verdict"], lead["headline"])
+        app.logger.info("LEAD %s | %s | %s | %s | %s", email, lead["company"], lead["verdict"], lead["headline"], report_url)
+
+    # The client sends the report exactly as rendered on screen (standalone HTML)
+    # plus a PDF of the same page. Both are stored so the email can link to a
+    # hosted copy and attach the PDF.
+    pdf_raw = _save_report(rid, d.get("report_doc") or "", d.get("pdf_b64") or "")
+    if stage == "capture":
+        return jsonify({"ok": True, "emailed": False, "report_id": rid, "report_url": report_url})
+    if not pdf_raw:
+        _, pdf_path = _report_paths(rid)
+        if os.path.exists(pdf_path):
+            with open(pdf_path, "rb") as f:
+                pdf_raw = f.read()
+    attachments = None
+    if pdf_raw:
+        attachments = [{"filename": _company_slug(lead["company"]), "content": base64.b64encode(pdf_raw).decode()}]
+
+    summary = d.get("summary") or {}
+    if not summary and (d.get("verdict") or d.get("headline")):
+        summary = {"verdict": d.get("verdict"), "headline": d.get("headline")}
     emailed = False
-    report_html = d.get("report_html") or ""
-    if report_html:
-        html = f"""
-        <div style="font-family:Arial,Helvetica,sans-serif;max-width:640px;margin:auto;color:#12222E">
-          <div style="background:#22333D;color:#fff;padding:22px 26px;border-radius:14px 14px 0 0">
-            <div style="font-size:12px;letter-spacing:2px;color:#F0995B">PROTECTED HARBOR</div>
-            <h2 style="margin:6px 0 0">Your SaaS Infrastructure Resilience Report</h2>
-          </div>
-          <div style="border:1px solid #EFE2D4;border-top:0;padding:24px 26px;border-radius:0 0 14px 14px">
-            {report_html}
-            <div style="text-align:center;margin:28px 0 8px">
-              <a href="{CALENDLY_URL}" style="background:#DD7A36;color:#fff;padding:13px 26px;border-radius:999px;text-decoration:none;font-weight:bold">Book your free working session</a>
-              <div style="font-size:12px;color:#61707A;margin-top:10px">A working session, not a sales call. Bring your business leaders, not just IT.</div>
-            </div>
-          </div>
-        </div>"""
+    if summary:
+        html = prospect_email(lead["name"], summary, report_url, bool(pdf_raw))
         # Split test: when the report is held for post podcast delivery, skip the
         # prospect send. The internal copy below still goes out so the host walks
         # into the recording already holding the findings.
         send_to_prospect = d.get("send_to_prospect", True)
         if send_to_prospect:
-            emailed, _ = send_resend(email, "Your Infrastructure Resilience Report | Protected Harbor", html)
+            emailed, _ = send_resend(email, "Your Infrastructure Resilience Report | Protected Harbor", html, attachments)
         if not lead["resend"] and NOTIFY_EMAIL:
             send_resend(
                 NOTIFY_EMAIL,
                 f"New resilience audit lead: {lead['company'] or email} ({lead['verdict']})"
                 + (" | REPORT HELD for post podcast delivery" if not send_to_prospect else ""),
-                f"<p><b>{lead['name']} {lead['last_name']}</b> | {lead['company']} | {lead['role']} | {lead['industry']}<br>"
-                f"{email}<br>Verdict: <b>{lead['verdict']}</b><br>{lead['headline']}</p><hr>{report_html}",
+                f"<p><b>{_esc(lead['name'])} {_esc(lead['last_name'])}</b> | {_esc(lead['company'])} | {_esc(lead['role'])} | {_esc(lead['industry'])}<br>"
+                f"{_esc(email)}<br>Verdict: <b>{_esc(lead['verdict'])}</b><br>{_esc(lead['headline'])}</p>"
+                f"<p><a href=\"{report_url}\">Open the hosted report</a>"
+                + (f" &middot; <a href=\"{report_url}.pdf\">PDF</a>" if pdf_raw else "") + "</p>"
+                + ("<p>PDF attached.</p>" if pdf_raw else ""),
+                attachments,
             )
-    return jsonify({"ok": True, "emailed": emailed})
+    return jsonify({"ok": True, "emailed": emailed, "report_id": rid, "report_url": report_url})
 
 
 def _admin_ok():
@@ -473,7 +623,7 @@ def api_leads_csv():
     if not _admin_ok():
         return jsonify({"error": "key"}), 403
     rows = _load(LEADS_PATH)
-    cols = ["ts", "email", "name", "last_name", "company", "role", "industry", "headline", "verdict", "delivery"]
+    cols = ["ts", "email", "name", "last_name", "company", "role", "industry", "headline", "verdict", "delivery", "report_id"]
     out = [",".join(cols)]
     for r in rows:
         out.append(",".join('"' + str(r.get(c, "")).replace('"', '""') + '"' for c in cols))

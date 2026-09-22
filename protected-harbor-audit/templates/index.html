@@ -6,6 +6,8 @@
 <title>Can You Take a Server Down? | Protected Harbor Resilience Audit</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Mulish:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js" defer></script>
 <style>
 :root{
   --paper:#FBF6F0; --ink:#1E2D36; --dark:#22333D; --dark2:#2C3F4A;
@@ -1007,14 +1009,44 @@ async function unlockReport(){
   if(!company){ document.getElementById("gCompany").focus(); return; }
   track("gate_unlock");
   window._leadEmail=email; state.company=company; saveState();
+  /* Render the report first (still hidden) so the emailed copy is built from
+     the real on screen markup, then show either the report or the holding
+     screen. The hold arm replaces the on screen content but the snapshot is
+     already taken. */
+  renderReport();
+  const doc=reportDocHTML();
   if(HOLD_REPORT){ showHold(first); } else { revealReport(); }
-  fetch("/api/lead",{method:"POST",headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({email,name:first,last_name:last,company,role:state.role,industry:state.industry,
-      headline:report.headline,verdict:report.computed.verdict,report_html:emailHTML(),
-      delivery:HOLD_REPORT?"held_for_post_podcast":"instant",send_to_prospect:!HOLD_REPORT})})
-    .then(r=>r.json()).then(d=>{ window._emailed=d.emailed; refreshEmailBtn(); })
-    .catch(()=>{});
+  sendLead({email,name:first,last_name:last,company},doc);
 }
+/* Post the lead with the report as it looked on screen (standalone HTML for
+   the hosted link) and a PDF of the same page for the attachment. The PDF is
+   built in the browser; if that fails or takes too long the lead still goes
+   out with the link only. */
+async function sendLead(who,doc,isResend){
+  const c=report.computed,m=money();
+  const base=Object.assign({},who,{role:state.role,industry:state.industry,
+    headline:report.headline,verdict:c.verdict,resend:!!isResend,
+    summary:{verdict:c.verdict,verdict_key:c.verdict_key,verdict_meaning:c.verdict_meaning,weakest_pillar:c.weakest_pillar,
+      weakest_score:c.weakest_score,readiness_pct:c.readiness_pct,headline:report.headline,cost_month:(m&&m.hasMoney)?fmt(m.bleedMonth):null},
+    delivery:HOLD_REPORT?"held_for_post_podcast":"instant",send_to_prospect:!HOLD_REPORT});
+  const post=b=>fetch("/api/lead",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b)}).then(r=>r.json());
+  /* Stage 1: log the lead and store the hosted copy straight away. */
+  if(!window._reportId){
+    const d1=await post(Object.assign({},base,{stage:"capture",report_doc:doc||reportDocHTML()}));
+    if(d1.report_id){ window._reportId=d1.report_id; window._reportUrl=d1.report_url; }
+  }
+  /* Stage 2: build the PDF (once) and send the email with it attached. */
+  let pdf_b64=null;
+  if(!window._pdfStored){
+    try{ pdf_b64=await withTimeout(buildPDF(),25000); }catch(e){ track("pdf_failed",{reason:String(e&&e.message||e)}); }
+  }
+  const d=await post(Object.assign({},base,{stage:"send",report_id:window._reportId||null,pdf_b64}));
+  if(pdf_b64&&d.ok) window._pdfStored=true;
+  if(d.report_id){ window._reportId=d.report_id; window._reportUrl=d.report_url; }
+  window._emailed=d.emailed; refreshEmailBtn();
+  return d;
+}
+function withTimeout(p,ms){ return Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")),ms))]); }
 /* Holding screen for the post podcast delivery arm of the split test. */
 function showHold(firstName){
   document.getElementById("gateBox").style.display="none";
@@ -1520,10 +1552,9 @@ function renderReport(){
     <a class="btn" href="${CALENDLY}" target="_blank" rel="noopener" onclick="track('cta_click')">Book the working session</a>
     <div class="actions">
       <button class="btn ghost sm" id="emailBtn" onclick="resendEmail()">Email me this report</button>
-      <button class="btn ghost sm" onclick="downloadReport()">Download the full report</button>
+      <button class="btn ghost sm" id="dlBtn" onclick="downloadReport()">Download the full report (PDF)</button>
       <button class="btn ghost sm" onclick="onePager()">Download one pager</button>
       <button class="btn ghost sm" onclick="shareWA()">Share summary on WhatsApp</button>
-      <button class="btn ghost sm" onclick="window.print()">Print / save PDF</button>
       <button class="btn ghost sm" onclick="startAgain()">Start again</button>
     </div>
     <div class="tiny" id="sentLine" style="margin-top:12px"></div>
@@ -1557,21 +1588,19 @@ function refreshEmailBtn(){
   const b=document.getElementById("emailBtn"); if(!b) return;
   if(window._emailed){ b.innerHTML="Sent ✓ to your inbox"; b.classList.add("sentok"); }
   const s=document.getElementById("sentLine");
-  if(s&&window._leadEmail) s.textContent="A copy of this report is on its way to "+window._leadEmail+".";
+  if(s&&window._leadEmail) s.textContent="A copy of this report is on its way to "+window._leadEmail+(window._emailed?", with the PDF attached and a link to this page.":".");
 }
 function startAgain(){ track("start_again"); clearState(); location.href=location.pathname+location.search; }
 async function resendEmail(){
   track("email_resend");
   const email=window._leadEmail||document.getElementById("gEmail").value.trim();
   if(!email){ return; }
+  const b=document.getElementById("emailBtn"); if(b){ b.textContent="Sending..."; }
   try{
-    const r=await fetch("/api/lead",{method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({email,resend:true,role:state.role,industry:state.industry,
-        headline:report.headline,verdict:report.computed.verdict,report_html:emailHTML(),
-      delivery:HOLD_REPORT?"held_for_post_podcast":"instant",send_to_prospect:!HOLD_REPORT})});
-    const d=await r.json();
+    const d=await sendLead({email},null,true);
     if(d.emailed){ window._emailed=true; refreshEmailBtn(); return; }
   }catch(e){}
+  if(b) b.textContent="Email me this report";
   location.href="mailto:"+CONTACT+"?subject="+encodeURIComponent("My Infrastructure Resilience Report")+"&body="+encodeURIComponent(summaryText()+"\n\nMy email: "+email);
 }
 function summaryText(){
@@ -1581,45 +1610,138 @@ function summaryText(){
     `${report.headline} Take the audit: ${location.origin}`;
 }
 function shareWA(){ track("share_wa"); window.open("https://wa.me/?text="+encodeURIComponent(summaryText()),"_blank"); }
-/* Download the report as it looks on screen: the real styles, the real
-   layout, everything expanded, interactive controls stripped out. Saves as a
-   standalone HTML file that opens in any browser and prints clean to PDF. */
-function downloadReport(){
-  track("download_report");
-  const styles=Array.from(document.querySelectorAll("style")).map(s=>s.outerHTML).join("\n");
+/* The report exactly as it looks on screen: the real styles, the real layout,
+   everything expanded, interactive controls stripped out. Used for the hosted
+   copy (the "View your report" link in the email), the PDF, and the download. */
+function reportClone(){
   const clone=document.getElementById("fullReport").cloneNode(true);
-  /* strip anything interactive or screen only */
-  clone.querySelectorAll(".adjust,.readmode,.actions,#previewBar,button,.mic").forEach(el=>el.remove());
+  clone.querySelectorAll(".adjust,.readmode,.actions,#previewBar,button,.mic,#sentLine").forEach(el=>el.remove());
   clone.querySelectorAll(".detailonly").forEach(el=>el.classList.remove("detailonly"));
-  const when=new Date().toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"});
-  const html=`<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+  clone.querySelectorAll("[onclick]").forEach(el=>el.removeAttribute("onclick"));
+  return clone;
+}
+function reportDocHTML(opts){
+  opts=opts||{};
+  const styles=Array.from(document.querySelectorAll("style")).map(s=>s.outerHTML).join("\n");
+  const clone=reportClone();
+  const when=new Date().toLocaleDateString("en-US",{day:"numeric",month:"long",year:"numeric"});
+  const tools=opts.forPdf?"":`<div class="dltools"><button onclick="window.print()">Save as PDF</button></div>`;
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
 <title>Infrastructure Resilience Report · ${esc(state.company||"Protected Harbor")}</title>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&family=Mulish:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Mulish:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 ${styles}
 <style>
-  body{background:var(--cream,#FBF6F0);padding:0}
+  body{background:var(--cream,#FBF6F0);padding:0;margin:0}
   .dlhead{background:#22333D;color:#fff;padding:26px 28px}
   .dlhead .k{font-size:11px;letter-spacing:2.4px;color:#F0995B;font-weight:700}
-  .dlhead h1{font-size:26px;margin:8px 0 4px;color:#fff}
+  .dlhead h1{font-size:26px;margin:8px 0 4px;color:#fff;line-height:1.25}
   .dlhead p{color:#C8D2D8;font-size:13.5px;margin:0}
   .dlwrap{max-width:860px;margin:0 auto;padding:0 20px 60px}
   .dlfoot{max-width:860px;margin:0 auto;padding:18px 20px 40px;font-size:12px;color:#5E6B75;border-top:1px solid #E7DCCE}
+  .dltools{max-width:860px;margin:0 auto;padding:14px 20px 0;text-align:right}
+  .dltools button{font:600 13px Poppins,Arial,sans-serif;background:#fff;border:1.5px solid #22333D;color:#22333D;border-radius:999px;padding:8px 16px;cursor:pointer}
   a[href]{color:#C2621F}
-  @media print{ .dlhead{-webkit-print-color-adjust:exact;print-color-adjust:exact} body{background:#fff} }
+  .card,.execbox,.rsec,.ctabox,.chainrow,.gcrow,.planrow,.receipt,.gloss dt,.gloss dd,h2,h3,table,tr{page-break-inside:avoid;break-inside:avoid}
+  ${opts.forPdf?`html,body{width:${PDF_W}px;overflow-x:hidden} .dlwrap,.dlfoot{max-width:none;padding-left:14px;padding-right:14px} .dlhead{padding:22px 14px}`:""}
+  @media print{ .dltools{display:none} .dlhead{-webkit-print-color-adjust:exact;print-color-adjust:exact} body{background:#fff} }
 </style></head><body>
 <div class="dlhead"><div class="dlwrap" style="padding-bottom:0">
   <div class="k">PROTECTED HARBOR · INFRASTRUCTURE RESILIENCE AUDIT</div>
   <h1>${esc(report.headline||"Your resilience report")}</h1>
   <p>Prepared ${when}${state.company?" for "+esc(state.company):""} · from the answers given, scored against Protected Harbor's resilience methodology</p>
 </div></div>
+${tools}
 <div class="dlwrap">${clone.innerHTML}</div>
 <div class="dlfoot">Honest by design: if this report says you are in good shape, you are. Every money figure was computed from the figures provided, never invented. Forward freely, the glossary travels with it. Protected Harbor · protectedharbor.com</div>
 </body></html>`;
-  const blob=new Blob([html],{type:"text/html;charset=utf-8"});
+}
+/* Build the PDF in the browser from the same document, so what lands in the
+   inbox matches the screen. Renders into an offscreen iframe at desktop width
+   so phone users get the same PDF as desktop users. Resolves to base64. */
+function buildPDF(){
+  return new Promise((resolve,reject)=>{
+    if(typeof html2canvas==="undefined"||typeof jspdf==="undefined"){ reject(new Error("pdf libs not loaded")); return; }
+    const fr=document.createElement("iframe");
+    fr.setAttribute("aria-hidden","true");
+    fr.style.cssText="position:fixed;left:-12000px;top:0;width:"+PDF_W+"px;height:1200px;border:0;opacity:0;pointer-events:none";
+    document.body.appendChild(fr);
+    const cleanup=()=>{ try{fr.remove();}catch(e){} };
+    fr.onload=()=>{
+      const d=fr.contentDocument;
+      (d.fonts&&d.fonts.ready?d.fonts.ready:Promise.resolve()).then(()=>setTimeout(()=>{
+        renderPages(d).then(b64=>{ cleanup(); resolve(b64); }).catch(e=>{ cleanup(); reject(e); });
+      },250));
+    };
+    fr.srcdoc=reportDocHTML({forPdf:true}).replace(/<(\/?)script/gi,"<$1scr_ipt");
+  });
+}
+/* Page by page: pick break points that never cut through a line, a bar, a
+   table row or a heading, render each slice with html2canvas, and place it on
+   an A4 page. Rendering per page keeps every canvas small, which matters on
+   iPhones (Safari caps canvas size). */
+async function renderPages(d){
+  const M=8, MT=8, MB=11;                              /* mm margins */
+  const innerW=210-2*M, innerH=297-MT-MB;
+  const pxPerMm=PDF_W/innerW, pageH=Math.floor(innerH*pxPerMm);
+  const body=d.body, total=Math.ceil(body.scrollHeight);
+  /* atomic blocks: never split these */
+  const atoms=[];
+  body.querySelectorAll("h1,h2,h3,h4,p,li,dt,dd,tr,pre,small,svg,img,.eyebrow,.tiny,.meaning,.vchips,.vlegend,.bar,.pillar,.gcrow,.chainrow,.chip,.stat,.anchors,.dlhead,.callout,.note,.kpi,.card > div:not(:has(*))").forEach(el=>{
+    const r=el.getBoundingClientRect(); if(r.height>0&&r.height<pageH*0.9) atoms.push([r.top+d.defaultView.scrollY,r.bottom+d.defaultView.scrollY]);
+  });
+  atoms.sort((a,b)=>a[0]-b[0]);
+  const straddles=y=>atoms.some(a=>a[0]<y-1&&a[1]>y+1);
+  const cuts=[]; let top=0;
+  while(top<total-2){
+    const limit=Math.min(top+pageH,total); let cut=limit;
+    if(limit<total){
+      const cands=[]; atoms.forEach(a=>{ if(a[1]<=limit&&a[1]>top+pageH*0.45) cands.push(a[1]+6); if(a[0]<=limit&&a[0]>top+pageH*0.45) cands.push(a[0]-4); });
+      cands.sort((a,b)=>b-a);
+      for(const y of cands){ if(!straddles(y)){ cut=Math.floor(y); break; } }
+      if(straddles(cut)){ for(let y=limit;y>top+pageH*0.45;y-=4){ if(!straddles(y)){ cut=y; break; } } }
+    }
+    cuts.push([top,cut]); top=cut;
+  }
+  const {jsPDF}=jspdf;
+  const pdf=new jsPDF({unit:"mm",format:"a4",orientation:"portrait",compress:true});
+  const scale=1.45;
+  for(let i=0;i<cuts.length;i++){
+    const [y0,y1]=cuts[i];
+    const cv=await html2canvas(body,{scale,useCORS:true,logging:false,backgroundColor:"#FBF6F0",
+      width:PDF_W,height:y1-y0,x:0,y:y0,scrollX:0,scrollY:0,windowWidth:PDF_W,windowHeight:Math.max(900,y1-y0)});
+    if(i>0) pdf.addPage();
+    pdf.setFillColor(251,246,240); pdf.rect(0,0,210,297,"F");
+    const hmm=(y1-y0)/pxPerMm;
+    pdf.addImage(cv.toDataURL("image/jpeg",0.82),"JPEG",M,MT,innerW,hmm,undefined,"FAST");
+    pdf.setFontSize(8); pdf.setTextColor(138,149,157);
+    pdf.text("Infrastructure Resilience Report · Protected Harbor",M,297-4.5);
+    pdf.text(String(i+1)+" / "+cuts.length,210-M,297-4.5,{align:"right"});
+  }
+  return pdf.output("datauristring").split(",")[1];
+}
+/* A4 inner width at 96dpi with the 8mm side margins below: layout is rendered at exactly this width so nothing is cropped. */
+const PDF_W=Math.floor((210-16)/25.4*96);
+function pdfName(){ return `Infrastructure-Resilience-Report${state.company?"-"+String(state.company).replace(/[^a-z0-9]+/gi,"-"):""}.pdf`; }
+async function downloadReport(){
+  track("download_report");
+  const btn=document.getElementById("dlBtn"); const label=btn?btn.textContent:"";
+  if(btn){ btn.textContent="Preparing your PDF..."; btn.disabled=true; }
+  try{
+    const b64=await withTimeout(buildPDF(),40000);
+    const bytes=atob(b64), arr=new Uint8Array(bytes.length);
+    for(let i=0;i<bytes.length;i++) arr[i]=bytes.charCodeAt(i);
+    saveBlob(new Blob([arr],{type:"application/pdf"}),pdfName());
+  }catch(e){
+    track("pdf_failed",{reason:String(e&&e.message||e),where:"download"});
+    /* fall back to the standalone web page, which prints clean to PDF */
+    saveBlob(new Blob([reportDocHTML()],{type:"text/html;charset=utf-8"}),pdfName().replace(/\.pdf$/,".html"));
+  }
+  if(btn){ btn.textContent=label; btn.disabled=false; }
+}
+function saveBlob(blob,name){
   const a=document.createElement("a");
-  a.href=URL.createObjectURL(blob);
-  a.download=`Infrastructure-Resilience-Report${state.company?"-"+String(state.company).replace(/[^a-z0-9]+/gi,"-"):""}.html`;
+  a.href=URL.createObjectURL(blob); a.download=name;
   document.body.appendChild(a); a.click();
   setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1500);
 }
@@ -1648,21 +1770,6 @@ function onePager(){
   <script>window.print()<\/script></body></html>`);
   w.document.close();
 }
-function emailHTML(){
-  const c=report.computed,m=money();
-  return `<p><b>Verdict: ${esc(c.verdict)}</b> — ${esc(c.verdict_meaning)}</p>
-  <p>${esc(report.headline)}</p>
-  <p><b>Weakest layer:</b> ${esc(c.weakest_pillar)} at ${c.weakest_score}/10 · Overall readiness ${c.readiness_pct}% (average of the four pillars)</p>
-  <ul>${report.pillars.map(p=>`<li><b>${esc(p.name)}: ${p.score}/10.</b> ${esc(p.reason)}</li>`).join("")}</ul>
-  ${m&&m.hasMoney?`<p><b>Estimated cost of doing nothing:</b> ${fmt(m.bleedMonth)}/month, computed from your own figures (estimates, not guarantees).</p>`:""}
-  <p><b>The blind spot:</b> ${esc(report.blind_spot)}</p>
-  <p><b>One initiative, not four:</b> ${esc(report.one_initiative.title)} — ${esc(report.one_initiative.why)}</p>
-  <p><b>90 day roadmap:</b></p>
-  <ol>${report.roadmap.map(p=>`<li><b>${esc(p.days)}: ${esc(p.title)}</b> (${esc(p.effort)} effort, done by ${esc(p.service)}). ${esc(p.what)}</li>`).join("")}</ol>
-  <p>${esc(report.goal_tieback)}</p>
-  <p style="font-size:12px;color:#5a6b76"><b>How to read this:</b> the verdict follows the weakest pillar (7+ Resilient, 4 to 6.9 Partially Resilient, under 4 Critical Exposure). All money figures are computed from the figures you provided, never invented. Forward freely.</p>`;
-}
-
 /* ------------------------------------------------ voice input */
 function wireMic(btnId, taId){
   const btn=document.getElementById(btnId); if(!btn) return;
